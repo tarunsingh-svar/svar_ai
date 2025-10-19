@@ -8,6 +8,7 @@ class AppRoutes {
   static const userUsage = '/userUsage';
   static const notePage = '/notePage';
   static const recordingNotePage = '/recordingNotePage';
+  static const createNotePage = '/createNotePage';
   static const settingsPage = '/settingsPage';
   static const pricingPage = '/pricingPage';
   static const recordPage = '/recordPage';

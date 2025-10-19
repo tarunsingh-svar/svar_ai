@@ -168,7 +168,7 @@ class BottomFloatingButtons extends StatelessWidget {
         children: [
           InkWell(
             onTap: () {
-              Get.toNamed(AppRoutes.notePage);
+              Get.toNamed(AppRoutes.createNotePage);
             },
             child: Image.asset(AppAssets.pen),
           ),
