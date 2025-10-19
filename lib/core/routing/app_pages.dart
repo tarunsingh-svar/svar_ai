@@ -15,7 +15,7 @@ import '../../modules/settings/settings_page.dart';
 import 'app_routes.dart';
 
 class AppPages {
-  static const initial = AppRoutes.home;
+  static const initial = AppRoutes.welcome;
 
   static final routes = [
     GetPage(name: AppRoutes.welcome, page: () => const WelcomePage()),

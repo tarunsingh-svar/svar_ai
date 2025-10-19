@@ -4,8 +4,8 @@ import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
 
-class ShareBottomSheet extends StatelessWidget {
-  const ShareBottomSheet({super.key});
+class RewriteBottomSheet extends StatelessWidget {
+  const RewriteBottomSheet({super.key});
 
   @override
   Widget build(BuildContext context) {

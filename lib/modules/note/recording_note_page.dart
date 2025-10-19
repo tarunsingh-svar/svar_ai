@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:svar_ai/modules/note/note_pages.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
@@ -153,8 +154,10 @@ class RecordingNotePage extends StatelessWidget {
       ),
 
       // ✅ Bottom Buttons
+      // floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      // floatingActionButton: const RecordingBottomButtons(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: const RecordingBottomButtons(),
+      floatingActionButton: BottomFloatingButtons(),
     );
   }
 

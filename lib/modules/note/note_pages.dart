@@ -7,8 +7,9 @@ import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../widgets/white_card.dart';
+import '../../widgets/custom_bottom_sheet.dart';
 import '../../widgets/tag_card.dart';
-import 'widgets/share_bottom_sheet.dart';
+import 'widgets/rewrite_bottom_sheet.dart';
 
 class NotePage extends StatelessWidget {
   NotePage({super.key});
@@ -236,20 +237,6 @@ class BottomFloatingButtons extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           InkWell(
-            onTap: () {},
-            child: Image.asset(AppAssets.spark, width: 12.w),
-          ),
-          InkWell(
-            onTap: () {},
-            child: Image.asset(AppAssets.note, width: 12.w),
-          ),
-          InkWell(
-            onTap: () {
-              Get.toNamed(AppRoutes.recordingNotePage);
-            },
-            child: Image.asset(AppAssets.plus, width: 12.w),
-          ),
-          InkWell(
             onTap: () {
               showModalBottomSheet(
                 context: context,
@@ -257,17 +244,213 @@ class BottomFloatingButtons extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-                builder: (context) => const ShareBottomSheet(),
+                builder: (context) => const RewriteBottomSheet(),
               );
             },
-            child: Image.asset(AppAssets.share, width: 12.w),
+            child: Image.asset(AppAssets.spark, width: 12.w),
+          ),
+          InkWell(
+            onTap: () {
+              Get.toNamed(AppRoutes.recordingNotePage);
+            },
+            child: Image.asset(AppAssets.note, width: 12.w),
+          ),
+          InkWell(
+            onTap: () {
+              showCustomBottomSheet(
+                children: [
+                  InkWell(
+                    onTap: () {},
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 2.2.h,
+                        horizontal: 4.w,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.mic,
+                                color: AppColors.white,
+                                size: 20.sp,
+                              ),
+                              SizedBox(width: 3.w),
+                              Text(
+                                "Continue in Existing Note",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 16.sp,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 1.5.h),
+                  InkWell(
+                    onTap: () {},
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 2.2.h,
+                        horizontal: 4.w,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.surface.withOpacity(0.2),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.mic,
+                                color: AppColors.primary,
+                                size: 20.sp,
+                              ),
+                              SizedBox(width: 3.w),
+                              Text(
+                                "Start a new recording",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textBlack,
+                                  fontSize: 16.sp,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 16.sp,
+                            color: AppColors.grey600,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+            child: Image.asset(AppAssets.plus, width: 12.w),
           ),
           InkWell(
             onTap: () {},
+            child: Image.asset(AppAssets.share, width: 12.w),
+          ),
+          InkWell(
+            onTap: () {
+              showShareOptionsSheet(context);
+            },
             child: Image.asset(AppAssets.threeDots, height: 4.h),
           ),
         ],
       ),
+    );
+  }
+
+  void showShareOptionsSheet(BuildContext context) {
+    showCustomBottomSheet(
+      topRadius: 22,
+      backgroundColor: AppColors.surface,
+      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
+      children: [
+        // 🔵 Share PDF button
+        InkWell(
+          onTap: () {
+            // share PDF logic
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 4.w),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Share PDF",
+                  style: AppTextTheme.body2.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16.sp,
+                  color: Colors.white,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        SizedBox(height: 1.5.h),
+
+        // ⚪ Copy Text button
+        InkWell(
+          onTap: () {
+            // copy text logic
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 4.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Copy text",
+                  style: AppTextTheme.body2.copyWith(
+                    color: AppColors.textBlack,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16.sp,
+                  color: AppColors.grey600,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
