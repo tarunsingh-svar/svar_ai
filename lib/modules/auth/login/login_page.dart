@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
+import 'package:svar_ai/modules/auth/login/login_controller.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
@@ -13,6 +14,7 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final LoginController loginController = Get.find();
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -45,7 +47,9 @@ class LoginPage extends StatelessWidget {
 
               // Google Sign-In Button
               InkWell(
-                onTap: () {},
+                onTap: () async {
+                  await loginController.loginWithGoogle();
+                },
                 child: WhiteCard(
                   width: double.infinity,
                   height: 6.h,

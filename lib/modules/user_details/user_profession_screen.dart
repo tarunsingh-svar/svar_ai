@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:svar_ai/modules/user_details/controller/user_details_controller.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/routing/app_routes.dart';
@@ -29,6 +30,7 @@ class UserProfessionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final UserDetailsController userDetailsController = Get.find();
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -56,7 +58,11 @@ class UserProfessionScreen extends StatelessWidget {
                     return Padding(
                       padding: EdgeInsets.only(bottom: 2.5.h),
                       child: GestureDetector(
-                        onTap: () => selectedIndex.value = index,
+                        onTap: () {
+                          selectedIndex.value = index;
+                          userDetailsController.profession.value =
+                              options[index];
+                        },
                         child: Container(
                           width: double.infinity,
                           padding: EdgeInsets.symmetric(

@@ -1,4 +1,4 @@
-package com.example.svar_ai
+package com.svar.ai
 
 import io.flutter.embedding.android.FlutterActivity
 
