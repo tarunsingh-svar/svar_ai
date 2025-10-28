@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:svar_ai/modules/user_details/controller/user_details_controller.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/keys.dart';
 import '../../core/routing/app_routes.dart';
 import '../../core/theme/text_styles.dart';
 import '../../widgets/custom_button.dart';
@@ -24,10 +28,26 @@ class UserUsageScreen extends StatelessWidget {
 
   void _onContinue() async {
     if (selectedIndex.value != -1) {
-      final UserDetailsController userDetailsController = Get.find();
-      userDetailsController.email.value = "ankityadav12014@gmail.com";
-      await userDetailsController.saveUserDetails();
-      Get.offAllNamed(AppRoutes.home);
+      EasyLoading.show(maskType: EasyLoadingMaskType.black);
+      final userDetailsController = Get.find<UserDetailsController>();
+      final prefs = Get.find<SharedPreferences>();
+      final supabase = Supabase.instance.client;
+
+      // get current user’s email safely
+      final email = supabase.auth.currentUser?.email;
+
+      if (email != null) {
+        userDetailsController.email.value = email;
+        userDetailsController.saveUserDetails();
+        // mark onboarding done
+        prefs.setBool(Keys.hasOnboarded, true);
+        EasyLoading.dismiss();
+        Get.offAllNamed(AppRoutes.home);
+      } else {
+        // fallback if user not logged in
+        Get.snackbar('Error', 'No user found. Please login again.');
+        Get.offAllNamed(AppRoutes.login);
+      }
     }
   }
 

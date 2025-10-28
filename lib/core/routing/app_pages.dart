@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:svar_ai/modules/auth/splash/splash_screen.dart';
 import 'package:svar_ai/modules/note/note_pages.dart';
 import 'package:svar_ai/modules/user_details/user_age_screen.dart';
 import 'package:svar_ai/modules/user_details/user_profession_screen.dart';
@@ -15,9 +16,10 @@ import '../../modules/settings/settings_page.dart';
 import 'app_routes.dart';
 
 class AppPages {
-  static const initial = AppRoutes.welcome;
+  static const initial = AppRoutes.splashScreen;
 
   static final routes = [
+    GetPage(name: AppRoutes.splashScreen, page: () => const SplashScreen()),
     GetPage(name: AppRoutes.welcome, page: () => const WelcomePage()),
     GetPage(name: AppRoutes.intro, page: () => const IntroScreens()),
     GetPage(name: AppRoutes.login, page: () => const LoginPage()),

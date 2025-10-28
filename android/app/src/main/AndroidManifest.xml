@@ -32,12 +32,16 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+           <!-- START: Deep Link Intent Filter for Supabase Auth -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.svar.ai" android:host="login-callback" />
+                <data
+                    android:scheme="com.svar.ai"
+                    android:host="login-callback" />
             </intent-filter>
+            <!-- END: Deep Link Intent Filter -->
 
         </activity>
         <!-- Don't delete the meta-data below.

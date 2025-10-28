@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
+import 'package:svar_ai/modules/auth/login/login_controller.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
@@ -13,6 +15,7 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final LoginController loginController = Get.find();
     return Scaffold(
       backgroundColor: AppColors.background,
       // appBar: AppBar(
@@ -158,6 +161,17 @@ class SettingsPage extends StatelessWidget {
                 onTap: () {},
               ),
               _buildSettingsTile(icon: AppAssets.x, title: "X", onTap: () {}),
+
+              _buildSettingsTile(
+                icon: AppAssets.userId,
+                title: "Logout",
+                onTap: () async {
+                  EasyLoading.show();
+                  await loginController.signOut();
+                  EasyLoading.dismiss();
+                  Get.offAllNamed(AppRoutes.splashScreen);
+                },
+              ),
               SizedBox(height: 3.h),
             ],
           ),
