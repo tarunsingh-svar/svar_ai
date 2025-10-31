@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:animate_do/animate_do.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
+import '../ai/ai_controller.dart';
 
 class RecordPage extends StatefulWidget {
   const RecordPage({super.key});
@@ -17,6 +19,8 @@ class RecordPage extends StatefulWidget {
 }
 
 class _RecordPageState extends State<RecordPage> {
+  final aiController = Get.find<AIController>();
+
   late final RecorderController recorderController;
   final RxBool isRecording = false.obs;
   final RxInt seconds = 0.obs;
@@ -84,10 +88,13 @@ class _RecordPageState extends State<RecordPage> {
 
     if (path != null) {
       recordedFilePath = path;
-      // Get.snackbar("Recording Saved", "File: ${path.split('/').last}");
-      // Get.back();
+
+      // ✅ CALL AI CONTROLLER HERE
+
+      await aiController.transcribeAudio(File(path));
+
       Get.back();
-      Get.toNamed(AppRoutes.notePage);
+      Get.toNamed(AppRoutes.recordingNotePage);
     } else {
       Get.snackbar("Error", "Failed to save recording");
     }
@@ -130,38 +137,42 @@ class _RecordPageState extends State<RecordPage> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Obx(
-        () => Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildIconButton(Icons.close_rounded, AppColors.primary, () {
-              Get.back();
-            }),
-            _buildIconButton(
-              Icons.stop_rounded,
-              AppColors.redSecondary,
-              stopRecording,
-              size: 34.sp,
-            ),
-            _buildIconButton(
-              isRecording.value
-                  ? Icons.pause_rounded
-                  : (seconds.value == 0
-                        ? Icons.mic_rounded
-                        : Icons.play_arrow_rounded),
-              AppColors.primary,
-              () {
-                if (isRecording.value) {
-                  pauseRecording();
-                } else {
-                  seconds.value == 0 ? startRecording() : resumeRecording();
-                }
-              },
-              size: 30.sp,
-            ),
-          ],
-        ),
-      ),
+      floatingActionButton: Obx(() {
+        return aiController.isLoading.value
+            ? const CircularProgressIndicator()
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildIconButton(Icons.close_rounded, AppColors.primary, () {
+                    Get.back();
+                  }),
+                  _buildIconButton(
+                    Icons.stop_rounded,
+                    AppColors.redSecondary,
+                    stopRecording,
+                    size: 34.sp,
+                  ),
+                  _buildIconButton(
+                    isRecording.value
+                        ? Icons.pause_rounded
+                        : (seconds.value == 0
+                              ? Icons.mic_rounded
+                              : Icons.play_arrow_rounded),
+                    AppColors.primary,
+                    () {
+                      if (isRecording.value) {
+                        pauseRecording();
+                      } else {
+                        seconds.value == 0
+                            ? startRecording()
+                            : resumeRecording();
+                      }
+                    },
+                    size: 30.sp,
+                  ),
+                ],
+              );
+      }),
     );
   }
 

@@ -244,7 +244,7 @@ class BottomFloatingButtons extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-                builder: (context) => const RewriteBottomSheet(),
+                builder: (context) => RewriteBottomSheet(),
               );
             },
             child: Image.asset(AppAssets.spark, width: 12.w),

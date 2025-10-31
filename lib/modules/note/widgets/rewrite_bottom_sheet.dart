@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
+import '../../ai/ai_controller.dart';
 
 class RewriteBottomSheet extends StatelessWidget {
-  const RewriteBottomSheet({super.key});
+  RewriteBottomSheet({super.key});
+
+  final AIController aiController = Get.find<AIController>();
 
   @override
   Widget build(BuildContext context) {
@@ -22,37 +27,32 @@ class RewriteBottomSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle + Close button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                height: 0.7.h,
-                width: 10.w,
-                decoration: BoxDecoration(
-                  color: AppColors.grey400,
-                  borderRadius: BorderRadius.circular(12.sp),
-                ),
+          // Drag handle
+          Center(
+            child: Container(
+              height: 0.7.h,
+              width: 10.w,
+              decoration: BoxDecoration(
+                color: AppColors.grey400,
+                borderRadius: BorderRadius.circular(12.sp),
               ),
-            ],
+            ),
           ),
           SizedBox(height: 1.h),
+
+          // Title + Close
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              SizedBox(
-                width: 53.w,
-                child: Text(
-                  "Rewrite",
-                  textAlign: TextAlign.end,
-                  style: AppTextTheme.button.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textBlack,
-                  ),
+              Text(
+                "Rewrite",
+                style: AppTextTheme.button.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textBlack,
                 ),
               ),
               InkWell(
-                onTap: () => Navigator.pop(context),
+                onTap: () => Get.back(),
                 borderRadius: BorderRadius.circular(50),
                 child: Icon(
                   Icons.close_rounded,
@@ -62,85 +62,116 @@ class RewriteBottomSheet extends StatelessWidget {
               ),
             ],
           ),
+
           SizedBox(height: 2.h),
 
-          // ===== Creator Section =====
-          Text(
-            "Creator",
-            style: AppTextTheme.button.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.textBlack,
-            ),
-          ),
-          SizedBox(height: 1.h),
+          _sectionTitle("Creator"),
 
           _buildOptionTile(
             iconPath: AppAssets.x,
             title: "X Post",
             subtitle: "Make an engaging tweet",
+            onTap: () async {
+              Get.back();
+              EasyLoading.show();
+              await aiController.generateXPost();
+              EasyLoading.dismiss();
+            },
           ),
-          _buildDivider(),
+          _divider(),
+
           _buildOptionTile(
             iconPath: AppAssets.x,
             title: "X Thread",
-            subtitle: "Transform into series of tweets",
+            subtitle: "Series of tweets",
+            onTap: () async {
+              Get.back();
+              EasyLoading.show();
+              await aiController.generateXThread();
+              EasyLoading.dismiss();
+            },
           ),
-          _buildDivider(),
+          _divider(),
+
           _buildOptionTile(
             iconPath: AppAssets.facebook,
             title: "Facebook",
-            subtitle: "Make an engaging social media post",
+            subtitle: "Friendly post",
+            onTap: () async {
+              Get.back();
+              EasyLoading.show();
+              await aiController.generateFacebookPost();
+              EasyLoading.dismiss();
+            },
           ),
-          _buildDivider(),
+          _divider(),
+
           _buildOptionTile(
             iconPath: AppAssets.linkedIn,
-            title: "Linkedin Posts",
-            subtitle: "Make a professional post",
+            title: "LinkedIn Posts",
+            subtitle: "Professional tone",
+            onTap: () async {
+              Get.back();
+              EasyLoading.show();
+              await aiController.generateLinkedInPost();
+              EasyLoading.dismiss();
+            },
           ),
 
           SizedBox(height: 2.h),
 
-          // ===== Text Editing Section =====
-          Text(
-            "Text Editing",
-            style: AppTextTheme.button.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.textBlack,
-            ),
-          ),
-          SizedBox(height: 1.h),
-
+          _sectionTitle("Text Editing"),
           _buildOptionTile(
             iconPath: AppAssets.stickyNote,
             title: "Meeting Notes",
-            subtitle: "Clean up chaotic conversations into insightful Notes",
+            subtitle: "Clean meeting content",
+            onTap: () async {
+              Get.back();
+              EasyLoading.show();
+              await aiController.generateMeetingNotes();
+              EasyLoading.dismiss();
+            },
           ),
-          _buildDivider(),
+          _divider(),
+
           _buildOptionTile(
             iconPath: AppAssets.journal,
             title: "Journal",
-            subtitle: "Journal out your day",
+            subtitle: "Personal reflection",
+            onTap: () async {
+              Get.back();
+              EasyLoading.show();
+              await aiController.generateJournal();
+              EasyLoading.dismiss();
+            },
           ),
-
-          SizedBox(height: 2.h),
         ],
       ),
     );
   }
 
+  Widget _sectionTitle(String title) => Text(
+    title,
+    style: AppTextTheme.button.copyWith(
+      fontWeight: FontWeight.w600,
+      color: AppColors.textBlack,
+    ),
+  );
+
   Widget _buildOptionTile({
     required String iconPath,
     required String title,
     required String subtitle,
+    required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       borderRadius: BorderRadius.circular(10.sp),
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 1.5.h),
         child: Row(
           children: [
-            Image.asset(iconPath, width: 6.w, height: 6.w, fit: BoxFit.contain),
+            Image.asset(iconPath, width: 6.w, height: 6.w),
             SizedBox(width: 4.w),
             Expanded(
               child: Column(
@@ -169,6 +200,6 @@ class RewriteBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildDivider() =>
-      Divider(color: AppColors.grey300, thickness: 0.5, height: 0);
+  Widget _divider() =>
+      Divider(color: AppColors.grey300, thickness: 0.6, height: 0);
 }

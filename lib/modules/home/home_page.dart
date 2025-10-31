@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
+import 'package:svar_ai/modules/ai/ai_controller.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
@@ -10,10 +11,16 @@ import '../../../widgets/white_card.dart';
 import 'home_controller.dart';
 import 'widgets/search_bar.dart';
 
-class HomePage extends StatelessWidget {
-  HomePage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
-  final controller = Get.put(HomeController());
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final homeController = Get.put(HomeController());
+  final AIController aiController = Get.find();
 
   final List<String> filters = ["All", "Favourites", "Office", "Archive"];
 
@@ -39,11 +46,11 @@ class HomePage extends StatelessWidget {
                   child: Row(
                     children: filters.map((filter) {
                       final bool isSelected =
-                          controller.selectedFilter.value == filter;
+                          homeController.selectedFilter.value == filter;
                       return Padding(
                         padding: EdgeInsets.only(right: 2.w),
                         child: GestureDetector(
-                          onTap: () => controller.changeFilter(filter),
+                          onTap: () => homeController.changeFilter(filter),
                           child: Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: 4.5.w,
@@ -81,61 +88,65 @@ class HomePage extends StatelessWidget {
               Expanded(
                 child: Obx(
                   () => ListView.builder(
-                    itemCount: controller.notes.length,
+                    itemCount: homeController.notes.length,
                     itemBuilder: (context, index) {
-                      final note = controller.notes[index];
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 2.h),
-                        child: WhiteCard(
-                          height: 13.h,
-                          color: AppColors.surface,
-                          boxShadow: [],
-                          borderRadius: 15.sp,
-                          margin: EdgeInsets.zero,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 4.w,
-                            vertical: 2.h,
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      note.title,
-                                      style: AppTextTheme.body2.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.textBlack,
+                      final note = homeController.notes[index];
+                      return InkWell(
+                        onTap: () {},
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: 2.h),
+                          child: WhiteCard(
+                            height: 13.h,
+                            color: AppColors.surface,
+                            boxShadow: [],
+                            borderRadius: 15.sp,
+                            margin: EdgeInsets.zero,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 4.w,
+                              vertical: 2.h,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        note.title,
+                                        style: AppTextTheme.body2.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textBlack,
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(height: 1.h),
-                                    Text(
-                                      note.subtitle,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTextTheme.body3.copyWith(
-                                        color: AppColors.textBlack,
+                                      SizedBox(height: 1.h),
+                                      Text(
+                                        note.subtitle,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTextTheme.body3.copyWith(
+                                          color: AppColors.textBlack,
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(height: 1.h),
-                                    Text(
-                                      note.date,
-                                      style: AppTextTheme.caption.copyWith(
-                                        color: AppColors.textBlack,
+                                      SizedBox(height: 1.h),
+                                      Text(
+                                        note.date,
+                                        style: AppTextTheme.caption.copyWith(
+                                          color: AppColors.textBlack,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              SizedBox(width: 5.w),
-                              Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 22.sp,
-                                color: AppColors.textBlack,
-                              ),
-                            ],
+                                SizedBox(width: 5.w),
+                                Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 22.sp,
+                                  color: AppColors.textBlack,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );
