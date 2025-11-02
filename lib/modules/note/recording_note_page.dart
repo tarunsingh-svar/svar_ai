@@ -1,7 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:svar_ai/modules/ai/ai_controller.dart';
 import 'package:svar_ai/modules/note/note_pages.dart';
 
@@ -20,12 +22,14 @@ class RecordingNotePage extends StatefulWidget {
 class _RecordingNotePageState extends State<RecordingNotePage> {
   final AIController aiController = Get.find();
 
-  final RxInt selectedTab = 0.obs;
+  final RxInt selectedTab = 1.obs;
 
   getData() async {
-    EasyLoading.show();
-    await aiController.getSummary();
-    EasyLoading.dismiss();
+    // EasyLoading.show();
+    // if (aiController.transcriptText.isNotEmpty) {
+    //   aiController.getSummary();
+    // }
+    // EasyLoading.dismiss();
   }
 
   @override
@@ -71,123 +75,249 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                 child: Obx(() {
                   return SingleChildScrollView(
                     child: selectedTab.value == 0
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(height: 3.h),
-
-                              // 🔹 Title
-                              Text(
-                                "Svar AI Demo Recording",
-                                style: AppTextTheme.h4.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textBlack,
-                                ),
-                              ),
-                              SizedBox(height: 0.5.h),
-
-                              // Date and Duration
-                              Text(
-                                "October 13, 2025   •   12 min 48 sec",
-                                style: AppTextTheme.body3.copyWith(
-                                  color: AppColors.textBlack,
-                                ),
-                              ),
-                              SizedBox(height: 2.h),
-
-                              // 🔹 Tags
-                              Row(
+                        ? Obx(() {
+                            if (aiController.summaryText.isEmpty) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  TagCard(
-                                    text: "All",
-                                    color: AppColors.cardYellow,
-                                  ),
-                                  SizedBox(width: 2.w),
-                                  TagCard(
-                                    text: "Office",
-                                    color: AppColors.cardGreen,
-                                  ),
-                                  SizedBox(width: 2.w),
-                                  TagCard(
-                                    text: "Kalpataru",
-                                    color: AppColors.cardPurple,
-                                  ),
-                                  SizedBox(width: 2.w),
-                                  InkWell(
-                                    onTap: () {},
-                                    borderRadius: BorderRadius.circular(8.sp),
-                                    child: Container(
-                                      height: 3.8.h,
-                                      width: 3.8.h,
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: AppColors.grey400,
-                                          width: 1,
+                                  SizedBox(height: 3.h),
+
+                                  _shimmerBox(
+                                    width: 60.w,
+                                    height: 3.h,
+                                  ), // Title
+                                  SizedBox(height: 1.h),
+                                  _shimmerBox(
+                                    width: 40.w,
+                                    height: 2.h,
+                                  ), // Date + Duration
+                                  SizedBox(height: 2.h),
+
+                                  // Tags
+                                  Row(
+                                    children: List.generate(
+                                      4,
+                                      (i) => Padding(
+                                        padding: EdgeInsets.only(right: 2.w),
+                                        child: _shimmerBox(
+                                          width: 15.w,
+                                          height: 4.h,
                                         ),
-                                        borderRadius: BorderRadius.circular(
-                                          8.sp,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.add_rounded,
-                                        size: 18.sp,
-                                        color: AppColors.grey600,
                                       ),
                                     ),
                                   ),
+                                  SizedBox(height: 2.5.h),
+
+                                  // Summary Title
+                                  _shimmerBox(width: 30.w, height: 2.5.h),
+                                  SizedBox(height: 2.h),
+
+                                  // Summary Paragraph Lines
+                                  ...List.generate(
+                                    4,
+                                    (i) => Padding(
+                                      padding: EdgeInsets.only(bottom: 1.5.h),
+                                      child: _shimmerBox(
+                                        width: (50 + Random().nextInt(40)).w,
+                                        height: 2.h,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 3.h),
+
+                                  // Action Items Title
+                                  _shimmerBox(width: 30.w, height: 2.5.h),
+                                  SizedBox(height: 2.h),
+
+                                  // Bullet list shimmer
+                                  ...List.generate(
+                                    3,
+                                    (i) => Padding(
+                                      padding: EdgeInsets.only(bottom: 1.5.h),
+                                      child: Row(
+                                        children: [
+                                          _shimmerBox(
+                                            width: 2.h,
+                                            height: 2.h,
+                                            isCircle: true,
+                                          ),
+                                          SizedBox(width: 2.w),
+                                          _shimmerBox(
+                                            width:
+                                                (50 + Random().nextInt(30)).w,
+                                            height: 2.h,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 10.h),
                                 ],
-                              ),
-                              SizedBox(height: 2.5.h),
+                              );
+                            }
 
-                              // 🔹 Recording Summary
-                              Text(
-                                "Summary",
-                                style: AppTextTheme.body1Medium.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textBlack,
+                            // 🔹 NORMAL UI (your original content)
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(height: 3.h),
+                                Text(
+                                  "Svar AI Demo Recording",
+                                  style: AppTextTheme.h4.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textBlack,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 2.h),
-                              Text(
-                                aiController.summaryText.value,
-                                // "This recording captures a short demo discussion regarding the AI note-taking capabilities of the Svar platform. The conversation focuses on how accurately the AI extracts structured notes, key points, and speaker differentiation.",
-                                style: AppTextTheme.body2.copyWith(
-                                  color: AppColors.textBlack,
-                                  fontSize: 15.sp,
+                                SizedBox(height: .5.h),
+                                Text(
+                                  "October 13, 2025   •   12 min 48 sec",
+                                  style: AppTextTheme.body3.copyWith(
+                                    color: AppColors.textBlack,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 3.h),
+                                SizedBox(height: 2.h),
 
-                              // 🔹 Key Highlights
-                              Text(
-                                "Action Items",
-                                style: AppTextTheme.body1Medium.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textBlack,
+                                Row(
+                                  children: [
+                                    TagCard(
+                                      text: "All",
+                                      color: AppColors.cardYellow,
+                                    ),
+                                    SizedBox(width: 2.w),
+                                    TagCard(
+                                      text: "Office",
+                                      color: AppColors.cardGreen,
+                                    ),
+                                    SizedBox(width: 2.w),
+                                    TagCard(
+                                      text: "Kalpataru",
+                                      color: AppColors.cardPurple,
+                                    ),
+                                    SizedBox(width: 2.w),
+                                    InkWell(
+                                      onTap: () {},
+                                      borderRadius: BorderRadius.circular(8.sp),
+                                      child: Container(
+                                        height: 3.8.h,
+                                        width: 3.8.h,
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: AppColors.grey400,
+                                            width: 1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8.sp,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.add_rounded,
+                                          size: 18.sp,
+                                          color: AppColors.grey600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              SizedBox(height: 2.h),
-                              _buildBulletPoint(
-                                "Real-time transcription accuracy is above 90%.",
-                              ),
-                              _buildBulletPoint(
-                                "Detected speakers are automatically labeled.",
-                              ),
-                              _buildBulletPoint(
-                                "Summarization happens within 5 seconds post recording.",
-                              ),
-                              SizedBox(height: 10.h),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              SizedBox(height: 3.h),
-                              Text(
-                                aiController.transcriptText.value,
-                                style: AppTextTheme.body2,
-                              ),
-                            ],
-                          ),
+
+                                SizedBox(height: 2.5.h),
+                                Text(
+                                  "Summary",
+                                  style: AppTextTheme.body1Medium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textBlack,
+                                  ),
+                                ),
+                                SizedBox(height: 2.h),
+                                Text(
+                                  aiController.summaryText.value,
+                                  style: AppTextTheme.body2.copyWith(
+                                    color: AppColors.textBlack,
+                                    fontSize: 15.sp,
+                                  ),
+                                ),
+                                SizedBox(height: 3.h),
+
+                                Text(
+                                  "Action Items",
+                                  style: AppTextTheme.body1Medium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textBlack,
+                                  ),
+                                ),
+                                SizedBox(height: 2.h),
+                                _buildBulletPoint(
+                                  "Real-time transcription accuracy is above 90%.",
+                                ),
+                                _buildBulletPoint(
+                                  "Detected speakers are automatically labeled.",
+                                ),
+                                _buildBulletPoint(
+                                  "Summarization happens within 5 seconds post recording.",
+                                ),
+                                SizedBox(height: 10.h),
+                              ],
+                            );
+                          })
+                        : Obx(() {
+                            if (aiController.isLoading.value &&
+                                aiController.transcriptText.isEmpty) {
+                              return Padding(
+                                padding: EdgeInsets.only(top: 3.h),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: List.generate(20, (i) {
+                                    double w = (50 + Random().nextInt(40)).w;
+
+                                    return Padding(
+                                      padding: EdgeInsets.only(bottom: 1.5.h),
+                                      child: Shimmer(
+                                        duration: const Duration(
+                                          milliseconds: 800,
+                                        ),
+                                        interval: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        child: Container(
+                                          width: w,
+                                          height: 2.h,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.cardGrey,
+                                            borderRadius: BorderRadius.circular(
+                                              5,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              );
+                            }
+
+                            if (aiController.transcriptText.value.isEmpty) {
+                              return Column(
+                                children: [
+                                  SizedBox(height: 3.h),
+                                  Text(
+                                    "No transcript found",
+                                    style: AppTextTheme.body2,
+                                  ),
+                                  SizedBox(height: 10.h),
+                                ],
+                              );
+                            }
+
+                            return Column(
+                              children: [
+                                SizedBox(height: 3.h),
+                                Text(
+                                  aiController.transcriptText.value,
+                                  style: AppTextTheme.body2,
+                                ),
+                                SizedBox(height: 10.h),
+                              ],
+                            );
+                          }),
                   );
                 }),
               ),
@@ -255,6 +385,27 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _shimmerBox({
+    required double width,
+    required double height,
+    bool isCircle = false,
+  }) {
+    return Shimmer(
+      duration: const Duration(milliseconds: 800),
+      interval: const Duration(milliseconds: 200),
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: AppColors.cardGrey,
+          borderRadius: isCircle
+              ? BorderRadius.circular(50)
+              : BorderRadius.circular(6),
+        ),
       ),
     );
   }

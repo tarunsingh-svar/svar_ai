@@ -91,7 +91,7 @@ class _RecordPageState extends State<RecordPage> {
 
       // ✅ CALL AI CONTROLLER HERE
 
-      await aiController.transcribeAudio(File(path));
+      aiController.transcribeAudio(File(path));
 
       Get.back();
       Get.toNamed(AppRoutes.recordingNotePage);
