@@ -76,7 +76,7 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                   return SingleChildScrollView(
                     child: selectedTab.value == 0
                         ? Obx(() {
-                            if (aiController.summaryText.isEmpty) {
+                            if (aiController.generatedText.isEmpty) {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -221,7 +221,7 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
 
                                 SizedBox(height: 2.5.h),
                                 Text(
-                                  "Summary",
+                                  aiController.headingText.value,
                                   style: AppTextTheme.body1Medium.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textBlack,
@@ -229,7 +229,7 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                                 ),
                                 SizedBox(height: 2.h),
                                 Text(
-                                  aiController.summaryText.value,
+                                  aiController.generatedText.value,
                                   style: AppTextTheme.body2.copyWith(
                                     color: AppColors.textBlack,
                                     fontSize: 15.sp,
@@ -237,23 +237,23 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                                 ),
                                 SizedBox(height: 3.h),
 
-                                Text(
-                                  "Action Items",
-                                  style: AppTextTheme.body1Medium.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textBlack,
-                                  ),
-                                ),
-                                SizedBox(height: 2.h),
-                                _buildBulletPoint(
-                                  "Real-time transcription accuracy is above 90%.",
-                                ),
-                                _buildBulletPoint(
-                                  "Detected speakers are automatically labeled.",
-                                ),
-                                _buildBulletPoint(
-                                  "Summarization happens within 5 seconds post recording.",
-                                ),
+                                // Text(
+                                //   "Action Items",
+                                //   style: AppTextTheme.body1Medium.copyWith(
+                                //     fontWeight: FontWeight.w600,
+                                //     color: AppColors.textBlack,
+                                //   ),
+                                // ),
+                                // SizedBox(height: 2.h),
+                                // _buildBulletPoint(
+                                //   "Real-time transcription accuracy is above 90%.",
+                                // ),
+                                // _buildBulletPoint(
+                                //   "Detected speakers are automatically labeled.",
+                                // ),
+                                // _buildBulletPoint(
+                                //   "Summarization happens within 5 seconds post recording.",
+                                // ),
                                 SizedBox(height: 10.h),
                               ],
                             );
@@ -368,26 +368,26 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
     );
   }
 
-  Widget _buildBulletPoint(String text) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 1.2.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("  •   "),
-          Expanded(
-            child: Text(
-              text,
-              style: AppTextTheme.body2.copyWith(
-                color: AppColors.textBlack,
-                fontSize: 15.sp,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildBulletPoint(String text) {
+  //   return Padding(
+  //     padding: EdgeInsets.only(bottom: 1.2.h),
+  //     child: Row(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         const Text("  •   "),
+  //         Expanded(
+  //           child: Text(
+  //             text,
+  //             style: AppTextTheme.body2.copyWith(
+  //               color: AppColors.textBlack,
+  //               fontSize: 15.sp,
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _shimmerBox({
     required double width,

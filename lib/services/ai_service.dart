@@ -27,58 +27,61 @@ class AIService {
     return res?.data?["transcript"];
   }
 
-  // ✅ New text generation features
-  Future<String?> createXPost(String text) async {
+  // ========================
+  // ✅ Content Generation
+  // ========================
+
+  Future<String?> _post(String endpoint, String text) async {
     Response? res = await _apiHelper.sendRequest(
-      endpoint: "/generate_x_post",
+      endpoint: endpoint,
       method: "POST",
       data: {"text": text},
     );
     return res?.data?["result"];
   }
 
-  Future<String?> createXThread(String text) async {
-    Response? res = await _apiHelper.sendRequest(
-      endpoint: "/generate_x_thread",
-      method: "POST",
-      data: {"text": text},
-    );
-    return res?.data?["result"];
-  }
+  // Creator / Social
+  Future<String?> createXPost(String text) => _post("/generate_x_post", text);
+  Future<String?> createXThread(String text) =>
+      _post("/generate_x_thread", text);
+  Future<String?> createFacebookPost(String text) =>
+      _post("/generate_facebook_post", text);
+  Future<String?> createLinkedInPost(String text) =>
+      _post("/generate_linkedin_post", text);
+  Future<String?> createShortVideoScript(String text) =>
+      _post("/generate_video_script", text);
+  Future<String?> createContentOutline(String text) =>
+      _post("/generate_content_outline", text);
 
-  Future<String?> createFacebookPost(String text) async {
-    Response? res = await _apiHelper.sendRequest(
-      endpoint: "/generate_facebook_post",
-      method: "POST",
-      data: {"text": text},
-    );
-    return res?.data?["result"];
-  }
+  // Productivity
+  Future<String?> createMeetingNotes(String text) =>
+      _post("/generate_meeting_notes", text);
+  Future<String?> createQuickList(String text) =>
+      _post("/generate_quick_list", text);
+  Future<String?> createTodoList(String text) =>
+      _post("/generate_todo_list", text);
 
-  Future<String?> createLinkedInPost(String text) async {
-    Response? res = await _apiHelper.sendRequest(
-      endpoint: "/generate_linkedin_post",
-      method: "POST",
-      data: {"text": text},
-    );
-    return res?.data?["result"];
-  }
+  // Collaboration
+  Future<String?> createDailyStandup(String text) =>
+      _post("/generate_daily_standup", text);
+  Future<String?> createFeatureDiscussion(String text) =>
+      _post("/generate_feature_discussion", text);
+  Future<String?> createInterviewSummary(String text) =>
+      _post("/generate_interview_summary", text);
+  Future<String?> createDelegationNote(String text) =>
+      _post("/generate_delegation_note", text);
 
-  Future<String?> createMeetingNotes(String text) async {
-    Response? res = await _apiHelper.sendRequest(
-      endpoint: "/generate_meeting_notes",
-      method: "POST",
-      data: {"text": text},
-    );
-    return res?.data?["result"];
-  }
+  // Emails
+  Future<String?> createEmailCasual(String text) =>
+      _post("/generate_email_casual", text);
+  Future<String?> createEmailFormal(String text) =>
+      _post("/generate_email_formal", text);
 
-  Future<String?> createJournal(String text) async {
-    Response? res = await _apiHelper.sendRequest(
-      endpoint: "/generate_journal",
-      method: "POST",
-      data: {"text": text},
-    );
-    return res?.data?["result"];
-  }
+  // Learning
+  Future<String?> createLectureSummary(String text) =>
+      _post("/generate_lecture_summary", text);
+
+  // Journaling
+  Future<String?> createJournal(String text) =>
+      _post("/generate_journal", text);
 }
