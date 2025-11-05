@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
 import 'package:svar_ai/modules/ai/ai_controller.dart';
+import 'package:svar_ai/modules/ai/transcribe_controller.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
@@ -20,9 +21,22 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final homeController = Get.put(HomeController());
+  final TranscribeController transcribeController = Get.find();
   final AIController aiController = Get.find();
 
   final List<String> filters = ["All", "Favourites", "Office", "Archive"];
+
+  getData() async {
+    await transcribeController.fetchAllUsersTranscribes();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await getData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,11 +102,18 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 child: Obx(
                   () => ListView.builder(
-                    itemCount: homeController.notes.length,
+                    itemCount: transcribeController.allUsersTranscribe.length,
                     itemBuilder: (context, index) {
-                      final note = homeController.notes[index];
+                      final note =
+                          transcribeController.allUsersTranscribe[index];
+
                       return InkWell(
-                        onTap: () {},
+                        onTap: () {
+                          aiController.transcriptText.value =
+                              note.transcribeText ?? '';
+                          aiController.getSummary();
+                          Get.toNamed(AppRoutes.recordingNotePage);
+                        },
                         child: Padding(
                           padding: EdgeInsets.only(bottom: 2.h),
                           child: WhiteCard(
@@ -113,16 +134,21 @@ class _HomePageState extends State<HomePage> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
+                                      // ✅ Title fallback
                                       Text(
-                                        note.title,
+                                        "Transcription",
                                         style: AppTextTheme.body2.copyWith(
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.textBlack,
                                         ),
                                       ),
                                       SizedBox(height: 1.h),
+
+                                      // ✅ Show text or placeholder
                                       Text(
-                                        note.subtitle,
+                                        note.transcribeText?.isNotEmpty == true
+                                            ? note.transcribeText!
+                                            : "Processing...",
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: AppTextTheme.body3.copyWith(
@@ -130,8 +156,13 @@ class _HomePageState extends State<HomePage> {
                                         ),
                                       ),
                                       SizedBox(height: 1.h),
+
+                                      // ✅ Format date cleanly
                                       Text(
-                                        note.date,
+                                        note.createdAt
+                                            .toLocal()
+                                            .toString()
+                                            .split('.')[0],
                                         style: AppTextTheme.caption.copyWith(
                                           color: AppColors.textBlack,
                                         ),
@@ -154,6 +185,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+              SizedBox(height: 10.h),
             ],
           ),
         ),

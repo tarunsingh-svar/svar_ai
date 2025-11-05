@@ -13,15 +13,23 @@ class UserDetailsController extends GetxController {
   final usage = ''.obs;
 
   Future<void> saveUserDetails() async {
-    try {
-      if (email.isEmpty) {
-        Get.snackbar('Error', 'User email not found');
-        return;
-      }
+    final user = _supabase.auth.currentUser;
 
+    if (user == null) {
+      Get.snackbar('Error', 'User not logged in');
+      return;
+    }
+
+    if (email.value.isEmpty) {
+      Get.snackbar('Error', 'User email missing');
+      return;
+    }
+
+    try {
       isLoading.value = true;
 
       final response = await _supabase.from('user_details').upsert({
+        'user_id': user.id,
         'email': email.value,
         'age': age.value,
         'profession': profession.value,
@@ -30,8 +38,8 @@ class UserDetailsController extends GetxController {
 
       debugPrint('✅ User details saved: $response');
     } catch (e) {
-      debugPrint('❌ Error saving user details: $e');
-      Get.snackbar('Error', 'Failed to save user details. Try again.');
+      debugPrint('❌ Error: $e');
+      Get.snackbar('Error', 'Couldn’t save details');
     } finally {
       isLoading.value = false;
     }

@@ -7,6 +7,27 @@ class LoginController extends GetxController {
   final SupabaseClient _supabase = Supabase.instance.client;
   final isLoading = false.obs;
 
+  @override
+  void onInit() {
+    super.onInit();
+
+    // Listen for login / logout state changes
+    _supabase.auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+      final session = data.session;
+
+      if (event == AuthChangeEvent.signedIn && session != null) {
+        print("✅ User signed in ✔");
+        Get.offAllNamed(AppRoutes.home);
+      }
+
+      if (event == AuthChangeEvent.signedOut) {
+        print("🚪 User signed out");
+        Get.offAllNamed(AppRoutes.welcome);
+      }
+    });
+  }
+
   Future<void> loginWithGoogle() async {
     try {
       // This will open the Google Sign-In flow (via the web view or deep link)

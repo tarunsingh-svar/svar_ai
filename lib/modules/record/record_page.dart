@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
+import 'package:svar_ai/modules/ai/transcribe_controller.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../ai/ai_controller.dart';
@@ -20,6 +21,7 @@ class RecordPage extends StatefulWidget {
 
 class _RecordPageState extends State<RecordPage> {
   final aiController = Get.find<AIController>();
+  final TranscribeController transcribeController = Get.find();
 
   late final RecorderController recorderController;
   final RxBool isRecording = false.obs;
@@ -89,9 +91,7 @@ class _RecordPageState extends State<RecordPage> {
     if (path != null) {
       recordedFilePath = path;
 
-      // ✅ CALL AI CONTROLLER HERE
-
-      aiController.transcribeAudio(File(path));
+      addNewTranscribe(path);
 
       Get.back();
       Get.toNamed(AppRoutes.recordingNotePage);
@@ -101,6 +101,21 @@ class _RecordPageState extends State<RecordPage> {
 
     seconds.value = 0;
     timeDisplay.value = "00:00:00";
+  }
+
+  Future<void> addNewTranscribe(String path) async {
+    aiController.isLoading.value = true;
+    aiController.transcriptText.value = '';
+    // 1️⃣ Insert row first → get row ID
+    final int? newId = await transcribeController.addNewTranscribe();
+
+    // 2️⃣ Send audio to AI → get transcribed text
+    final transcribeText = await aiController.transcribeAudio(File(path));
+
+  // 3️⃣ Update that row
+    if (newId != null && transcribeText != null) {
+      await transcribeController.updateTranscribe(newId, transcribeText);
+    }
   }
 
   @override

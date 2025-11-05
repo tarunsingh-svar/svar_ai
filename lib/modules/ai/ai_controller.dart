@@ -22,16 +22,18 @@ class AIController extends GetxController {
     );
   }
 
-  Future<void> transcribeAudio(File audioFile) async {
+  Future<String?> transcribeAudio(File audioFile) async {
     try {
       isLoading.value = true;
       transcriptText.value = "";
       generatedText.value = "";
       final transcript = await _service.transcribeAudio(audioFile);
       transcriptText.value = transcript ?? "No transcript found";
-      await getSummary();
+      getSummary();
+      return transcript ?? "No transcript found";
     } catch (e) {
       transcriptText.value = "Error: $e";
+      return "Error: $e";
     } finally {
       isLoading.value = false;
     }
