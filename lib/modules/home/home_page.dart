@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
 import 'package:svar_ai/modules/ai/ai_controller.dart';
 import 'package:svar_ai/modules/ai/transcribe_controller.dart';
@@ -25,9 +26,11 @@ class _HomePageState extends State<HomePage> {
   final AIController aiController = Get.find();
 
   final List<String> filters = ["All", "Favourites", "Office", "Archive"];
-
+  final isLoading = false.obs;
   getData() async {
+    isLoading.value = true;
     await transcribeController.fetchAllUsersTranscribes();
+    isLoading.value = false;
   }
 
   @override
@@ -99,23 +102,17 @@ class _HomePageState extends State<HomePage> {
               SizedBox(height: 3.h),
 
               // 🗒 Notes List
+              // 🗒 Notes List with Loading Shimmers
               Expanded(
-                child: Obx(
-                  () => ListView.builder(
-                    itemCount: transcribeController.allUsersTranscribe.length,
-                    itemBuilder: (context, index) {
-                      final note =
-                          transcribeController.allUsersTranscribe[index];
-
-                      return InkWell(
-                        onTap: () {
-                          aiController.transcriptText.value =
-                              note.transcribeText ?? '';
-                          aiController.getSummary();
-                          Get.toNamed(AppRoutes.recordingNotePage);
-                        },
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: 2.h),
+                child: Obx(() {
+                  if (transcribeController.allUsersTranscribe.isEmpty &&
+                      isLoading.isTrue) {
+                    // ✅ Show shimmer placeholders
+                    return ListView.builder(
+                      itemCount: 6,
+                      itemBuilder: (_, __) => Padding(
+                        padding: EdgeInsets.only(bottom: 2.h),
+                        child: Shimmer(
                           child: WhiteCard(
                             height: 13.h,
                             color: AppColors.surface,
@@ -127,63 +124,140 @@ class _HomePageState extends State<HomePage> {
                               vertical: 2.h,
                             ),
                             child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      // ✅ Title fallback
-                                      Text(
-                                        "Transcription",
-                                        style: AppTextTheme.body2.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textBlack,
-                                        ),
+                                      Container(
+                                        height: 2.h,
+                                        width: 30.w,
+                                        color: Colors.white,
                                       ),
                                       SizedBox(height: 1.h),
-
-                                      // ✅ Show text or placeholder
-                                      Text(
-                                        note.transcribeText?.isNotEmpty == true
-                                            ? note.transcribeText!
-                                            : "Processing...",
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppTextTheme.body3.copyWith(
-                                          color: AppColors.textBlack,
-                                        ),
+                                      Container(
+                                        height: 2.h,
+                                        width: 50.w,
+                                        color: Colors.white,
                                       ),
                                       SizedBox(height: 1.h),
-
-                                      // ✅ Format date cleanly
-                                      Text(
-                                        note.createdAt
-                                            .toLocal()
-                                            .toString()
-                                            .split('.')[0],
-                                        style: AppTextTheme.caption.copyWith(
-                                          color: AppColors.textBlack,
-                                        ),
+                                      Container(
+                                        height: 1.8.h,
+                                        width: 20.w,
+                                        color: Colors.white,
                                       ),
                                     ],
                                   ),
                                 ),
                                 SizedBox(width: 5.w),
-                                Icon(
-                                  Icons.arrow_forward_ios_rounded,
-                                  size: 22.sp,
-                                  color: AppColors.textBlack,
+                                Container(
+                                  height: 2.5.h,
+                                  width: 2.5.h,
+                                  color: Colors.white,
                                 ),
                               ],
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
+                    );
+                  }
+
+                  // ✅ Normal List View
+                  if (transcribeController.allUsersTranscribe.isNotEmpty) {
+                    return ListView.builder(
+                      itemCount: transcribeController.allUsersTranscribe.length,
+                      itemBuilder: (context, index) {
+                        final note =
+                            transcribeController.allUsersTranscribe[index];
+
+                        return InkWell(
+                          onTap: () {
+                            transcribeController.thisNoteId.value = note.id;
+                            aiController.transcriptText.value =
+                                note.transcribeText ?? '';
+                            aiController.getSummary();
+                            Get.toNamed(AppRoutes.recordingNotePage);
+                          },
+                          child: Padding(
+                            padding: EdgeInsets.only(bottom: 2.h),
+                            child: WhiteCard(
+                              height: 13.h,
+                              color: AppColors.surface,
+                              boxShadow: [],
+                              borderRadius: 15.sp,
+                              margin: EdgeInsets.zero,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 4.w,
+                                vertical: 2.h,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          (note.title ?? "").isNotEmpty
+                                              ? note.title!
+                                              : "Transcription",
+                                          style: AppTextTheme.body2.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textBlack,
+                                          ),
+                                        ),
+                                        SizedBox(height: 1.h),
+                                        Text(
+                                          note.transcribeText?.isNotEmpty ==
+                                                  true
+                                              ? note.transcribeText!
+                                              : "Processing...",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: AppTextTheme.body3.copyWith(
+                                            color: AppColors.textBlack,
+                                          ),
+                                        ),
+                                        SizedBox(height: 1.h),
+                                        Text(
+                                          note.createdAt
+                                              .toLocal()
+                                              .toString()
+                                              .split('.')[0],
+                                          style: AppTextTheme.caption.copyWith(
+                                            color: AppColors.textBlack,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(width: 5.w),
+                                  Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    size: 22.sp,
+                                    color: AppColors.textBlack,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  } else {
+                    return Center(
+                      child: Text(
+                        "No notes found",
+                        style: AppTextTheme.h2.copyWith(
+                          color: AppColors.grey400,
+                        ),
+                      ),
+                    );
+                  }
+                }),
               ),
               SizedBox(height: 10.h),
             ],

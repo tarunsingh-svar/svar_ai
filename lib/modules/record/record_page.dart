@@ -112,9 +112,9 @@ class _RecordPageState extends State<RecordPage> {
     // 2️⃣ Send audio to AI → get transcribed text
     final transcribeText = await aiController.transcribeAudio(File(path));
 
-  // 3️⃣ Update that row
-    if (newId != null && transcribeText != null) {
-      await transcribeController.updateTranscribe(newId, transcribeText);
+    // 3️⃣ Update that row
+    if (newId != null && transcribeText != null && transcribeText.length > 50) {
+      await transcribeController.updateTranscribeText(newId, transcribeText);
     }
   }
 

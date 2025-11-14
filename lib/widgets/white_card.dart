@@ -31,8 +31,8 @@ class WhiteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: height ?? 6.h, // roughly matches 54dp
-      width: width ?? 90.w, // roughly matches 333dp
+      height: height ?? 6.h,
+      width: width ?? 90.w,
       margin: margin ?? EdgeInsets.symmetric(horizontal: 5.w),
       padding: padding ?? EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
       decoration: BoxDecoration(

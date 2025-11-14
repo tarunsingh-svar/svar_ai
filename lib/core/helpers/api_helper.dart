@@ -2,17 +2,17 @@ import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import '../constants/env.dart';
 
-class ApiHelper {
-  final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      lineLength: 150,
-      colors: true,
-      printEmojis: true,
-      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-    ),
-  );
+final Logger logger = Logger(
+  printer: PrettyPrinter(
+    methodCount: 2,
+    lineLength: 150,
+    colors: true,
+    printEmojis: true,
+    dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+  ),
+);
 
+class ApiHelper {
   late final Dio _dio;
 
   ApiHelper() {
@@ -27,7 +27,7 @@ class ApiHelper {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          _logger.i(
+          logger.i(
             '➡️ REQUEST\n'
             'URL: ${options.baseUrl}${options.path}\n'
             'Method: ${options.method}\n'
@@ -43,7 +43,7 @@ class ApiHelper {
               ? DateTime.now().difference(start)
               : null;
 
-          _logger.i(
+          logger.i(
             '✅ RESPONSE\n'
             'Status: ${response.statusCode}\n'
             'Time: ${duration?.inMilliseconds} ms\n'
@@ -57,7 +57,7 @@ class ApiHelper {
           final start = req.extra['startTime'] as DateTime?;
           final dur = start != null ? DateTime.now().difference(start) : null;
 
-          _logger.e(
+          logger.e(
             '❌ ERROR\n '
             'URL: ${req.baseUrl}${req.path}\n'
             'Status: ${e.response?.statusCode}\n'
@@ -95,7 +95,7 @@ class ApiHelper {
       dataLog = options.data;
     }
 
-    _logger.i("""
+    logger.i("""
     📤 HTTP REQUEST
     ➡️ URL: ${options.uri}
     ➡️ Method: ${options.method}
@@ -142,10 +142,10 @@ class ApiHelper {
 
       return response;
     } on DioException catch (e) {
-      _logger.e("Dio Error -> ${e.message}");
+      logger.e("Dio Error -> ${e.message}");
       return e.response;
     } catch (e) {
-      _logger.e("Other Error -> $e");
+      logger.e("Other Error -> $e");
       return null;
     }
   }

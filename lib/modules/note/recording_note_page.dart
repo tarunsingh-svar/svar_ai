@@ -10,7 +10,9 @@ import 'package:svar_ai/modules/note/note_pages.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../widgets/white_card.dart';
+import '../../widgets/editable_text_widget.dart';
 import '../../widgets/tag_card.dart';
+import '../ai/transcribe_controller.dart';
 
 class RecordingNotePage extends StatefulWidget {
   const RecordingNotePage({super.key});
@@ -21,16 +23,11 @@ class RecordingNotePage extends StatefulWidget {
 
 class _RecordingNotePageState extends State<RecordingNotePage> {
   final AIController aiController = Get.find();
+  final TranscribeController transcribeController = Get.find();
 
   final RxInt selectedTab = 1.obs;
 
-  getData() async {
-    // EasyLoading.show();
-    // if (aiController.transcriptText.isNotEmpty) {
-    //   aiController.getSummary();
-    // }
-    // EasyLoading.dismiss();
-  }
+  getData() async {}
 
   @override
   void initState() {
@@ -161,13 +158,28 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 SizedBox(height: 3.h),
-                                Text(
-                                  "Svar AI Demo Recording",
+                                // Text(
+                                //   "Svar AI Demo Recording",
+                                //   style: AppTextTheme.h4.copyWith(
+                                //     fontWeight: FontWeight.w600,
+                                //     color: AppColors.textBlack,
+                                //   ),
+                                // ),
+                                EditableTextWidget(
+                                  text: aiController.headingText.value,
                                   style: AppTextTheme.h4.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textBlack,
                                   ),
+                                  onChanged: (val) {
+                                    transcribeController.updateTitle(
+                                      transcribeController.thisNoteId.value,
+                                      val,
+                                    );
+                                    return aiController.headingText.value = val;
+                                  },
                                 ),
+
                                 SizedBox(height: .5.h),
                                 Text(
                                   "October 13, 2025   •   12 min 48 sec",
@@ -228,13 +240,26 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                                   ),
                                 ),
                                 SizedBox(height: 2.h),
-                                Text(
-                                  aiController.generatedText.value,
+                                // Text(
+                                //   aiController.generatedText.value,
+                                //   style: AppTextTheme.body2.copyWith(
+                                //     color: AppColors.textBlack,
+                                //     fontSize: 15.sp,
+                                //   ),
+                                // ),
+                                EditableTextWidget(
+                                  text: aiController.generatedText.value,
                                   style: AppTextTheme.body2.copyWith(
                                     color: AppColors.textBlack,
                                     fontSize: 15.sp,
                                   ),
+                                  maxLines: 200,
+                                  onChanged: (val) {
+                                    return aiController.generatedText.value =
+                                        val;
+                                  },
                                 ),
+
                                 SizedBox(height: 3.h),
 
                                 // Text(
@@ -310,10 +335,24 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                             return Column(
                               children: [
                                 SizedBox(height: 3.h),
-                                Text(
-                                  aiController.transcriptText.value,
+                                // Text(
+                                //   aiController.transcriptText.value,
+                                //   style: AppTextTheme.body2,
+                                // ),
+                                EditableTextWidget(
+                                  text: aiController.transcriptText.value,
                                   style: AppTextTheme.body2,
+                                  maxLines: 200,
+                                  onChanged: (val) {
+                                    transcribeController.updateTranscribeText(
+                                      transcribeController.thisNoteId.value,
+                                      val,
+                                    );
+                                    return aiController.transcriptText.value =
+                                        val;
+                                  },
                                 ),
+
                                 SizedBox(height: 10.h),
                               ],
                             );
