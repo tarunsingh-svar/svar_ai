@@ -25,11 +25,11 @@ class _HomePageState extends State<HomePage> {
   final TranscribeController transcribeController = Get.find();
   final AIController aiController = Get.find();
 
-  final List<String> filters = ["All", "Favourites", "Office", "Archive"];
   final isLoading = false.obs;
   getData() async {
     isLoading.value = true;
     await transcribeController.fetchAllUsersTranscribes();
+    homeController.syncFilterWithAvailableTags();
     isLoading.value = false;
   }
 
@@ -58,7 +58,9 @@ class _HomePageState extends State<HomePage> {
 
               // 🔘 Filter chips
               Obx(
-                () => SingleChildScrollView(
+                () {
+                  final filters = homeController.availableFilters;
+                  return SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: filters.map((filter) {
@@ -97,7 +99,8 @@ class _HomePageState extends State<HomePage> {
                       );
                     }).toList(),
                   ),
-                ),
+                );
+                },
               ),
               SizedBox(height: 3.h),
 
@@ -164,19 +167,32 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
 
+                  final filteredNotes = homeController.filteredNotes;
+
+                  if (transcribeController.allUsersTranscribe.isNotEmpty &&
+                      filteredNotes.isEmpty) {
+                    return Center(
+                      child: Text(
+                        "No matching notes",
+                        style: AppTextTheme.h2.copyWith(
+                          color: AppColors.grey400,
+                        ),
+                      ),
+                    );
+                  }
+
                   // ✅ Normal List View
-                  if (transcribeController.allUsersTranscribe.isNotEmpty) {
+                  if (filteredNotes.isNotEmpty) {
                     return ListView.builder(
-                      itemCount: transcribeController.allUsersTranscribe.length,
+                      itemCount: filteredNotes.length,
                       itemBuilder: (context, index) {
-                        final note =
-                            transcribeController.allUsersTranscribe[index];
+                        final note = filteredNotes[index];
 
                         return InkWell(
                           onTap: () {
                             transcribeController.thisNoteId.value = note.id;
                             transcribeController.recordingDurationSeconds.value =
-                                0;
+                                note.durationSeconds;
                             final title = note.title?.trim();
                             aiController.headingText.value =
                                 (title != null && title.isNotEmpty)
@@ -184,7 +200,12 @@ class _HomePageState extends State<HomePage> {
                                     : 'Untitled Note';
                             aiController.transcriptText.value =
                                 note.transcribeText ?? '';
-                            aiController.getSummary();
+                            final savedSummary = note.summaryText?.trim();
+                            if (savedSummary != null && savedSummary.isNotEmpty) {
+                              aiController.generatedText.value = savedSummary;
+                            } else {
+                              aiController.getSummary();
+                            }
                             Get.toNamed(AppRoutes.recordingNotePage);
                           },
                           child: Padding(
@@ -208,9 +229,9 @@ class _HomePageState extends State<HomePage> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          (note.title ?? "").isNotEmpty
-                                              ? note.title!
-                                              : "Transcription",
+                                          (note.title ?? "").trim().isNotEmpty
+                                              ? note.title!.trim()
+                                              : "Untitled Note",
                                           style: AppTextTheme.body2.copyWith(
                                             fontWeight: FontWeight.w600,
                                             color: AppColors.textBlack,

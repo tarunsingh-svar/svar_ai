@@ -2,6 +2,8 @@ class TranscribeModel {
   final int id;
   final String? title;
   final String? transcribeText;
+  final String? summaryText;
+  final int durationSeconds;
   final List<String>? tags;
   final String userId;
   final DateTime createdAt;
@@ -13,6 +15,8 @@ class TranscribeModel {
     required this.createdAt,
     this.title,
     this.transcribeText,
+    this.summaryText,
+    this.durationSeconds = 0,
     this.tags,
     this.updatedAt,
   });
@@ -22,6 +26,10 @@ class TranscribeModel {
       id: json['id'],
       title: json['title'],
       transcribeText: json['transcribe_text'],
+      summaryText: json['summary_text'],
+      durationSeconds: json['duration_seconds'] is int
+          ? json['duration_seconds'] as int
+          : int.tryParse('${json['duration_seconds']}') ?? 0,
       tags: json['tags'] != null ? List<String>.from(json['tags']) : null,
       userId: json['user_id'],
       createdAt: DateTime.parse(json['created_at']),
@@ -35,6 +43,8 @@ class TranscribeModel {
     'id': id,
     'title': title,
     'transcribe_text': transcribeText,
+    'summary_text': summaryText,
+    'duration_seconds': durationSeconds,
     'tags': tags,
     'user_id': userId,
     'created_at': createdAt.toIso8601String(),

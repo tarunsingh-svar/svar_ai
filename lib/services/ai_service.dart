@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import '../core/debug_agent_log.dart';
 import '../core/helpers/api_helper.dart';
 
 class AIService {
@@ -25,35 +24,12 @@ class AIService {
   }
 
   Future<String?> summariseText(String input) async {
-    // #region agent log
-    agentDebugLog(
-      location: 'ai_service.dart:summariseText:entry',
-      message: 'summarize request',
-      hypothesisId: 'A',
-      data: {'textLength': input.length, 'method': 'POST'},
-    );
-    // #endregion
     Response? res = await _apiHelper.sendRequest(
       endpoint: "/summarize",
       method: "POST",
       data: {"text": input},
     );
-    final raw = res?.data;
-    // #region agent log
-    agentDebugLog(
-      location: 'ai_service.dart:summariseText:response',
-      message: 'summarize response received',
-      hypothesisId: 'A,B',
-      data: {
-        'statusCode': res?.statusCode,
-        'dataType': raw?.runtimeType.toString(),
-        'dataPreview': raw is String
-            ? raw.substring(0, raw.length.clamp(0, 80))
-            : (raw is Map ? 'Map' : null),
-      },
-    );
-    // #endregion
-    return _extractSummary(raw);
+    return _extractSummary(res?.data);
   }
 
   Future<String?> transcribeAudio(File audioFile) async {

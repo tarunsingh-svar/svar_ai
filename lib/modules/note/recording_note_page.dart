@@ -46,6 +46,14 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
     final title = note.title?.trim();
     aiController.headingText.value =
         (title != null && title.isNotEmpty) ? title : 'Untitled Note';
+    final savedSummary = note.summaryText?.trim();
+    if (savedSummary != null && savedSummary.isNotEmpty) {
+      aiController.generatedText.value = savedSummary;
+    }
+    if (note.durationSeconds > 0) {
+      transcribeController.recordingDurationSeconds.value =
+          note.durationSeconds;
+    }
   }
 
   Future<void> _showAddTagDialog() async {
@@ -202,15 +210,19 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                                 SizedBox(height: 2.h),
                                 EditableTextWidget(
                                   text: aiController.headingText.value,
+                                  singleLine: true,
                                   style: AppTextTheme.h4.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textBlack,
                                   ),
                                   onChanged: (val) {
-                                    aiController.headingText.value = val;
+                                    final title = val.isEmpty
+                                        ? 'Untitled Note'
+                                        : val;
+                                    aiController.headingText.value = title;
                                     transcribeController.updateTitle(
                                       transcribeController.thisNoteId.value,
-                                      val,
+                                      title,
                                     );
                                   },
                                 ),
@@ -221,9 +233,12 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                                   final dateText = note != null
                                       ? formatNoteDate(note.createdAt)
                                       : formatNoteDate(DateTime.now());
+                                  final secs = note?.durationSeconds ?? 0;
                                   final durationText = formatRecordingDuration(
-                                    transcribeController
-                                        .recordingDurationSeconds.value,
+                                    secs > 0
+                                        ? secs
+                                        : transcribeController
+                                            .recordingDurationSeconds.value,
                                   );
                                   return Text(
                                     '$dateText   •   $durationText',
@@ -281,7 +296,7 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
 
                                 SizedBox(height: 2.5.h),
                                 Text(
-                                  aiController.headingText.value,
+                                  'Summary',
                                   style: AppTextTheme.body1Medium.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textBlack,
@@ -303,8 +318,11 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                                   ),
                                   maxLines: 200,
                                   onChanged: (val) {
-                                    return aiController.generatedText.value =
-                                        val;
+                                    aiController.generatedText.value = val;
+                                    transcribeController.updateSummaryText(
+                                      transcribeController.thisNoteId.value,
+                                      val,
+                                    );
                                   },
                                 ),
 

@@ -6,6 +6,7 @@ class EditableTextWidget extends StatefulWidget {
   final Function(String) onChanged;
   final TextAlign? align;
   final int maxLines;
+  final bool singleLine;
 
   const EditableTextWidget({
     super.key,
@@ -14,6 +15,7 @@ class EditableTextWidget extends StatefulWidget {
     this.style,
     this.align,
     this.maxLines = 20,
+    this.singleLine = false,
   });
 
   @override
@@ -23,11 +25,24 @@ class EditableTextWidget extends StatefulWidget {
 class _EditableTextWidgetState extends State<EditableTextWidget> {
   bool isEditing = false;
   late TextEditingController controller;
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     controller = TextEditingController(text: widget.text);
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus && isEditing) {
+      _commitEdit();
+    }
+  }
+
+  void _commitEdit() {
+    widget.onChanged(controller.text.trim());
+    setState(() => isEditing = false);
   }
 
   @override
@@ -40,6 +55,8 @@ class _EditableTextWidgetState extends State<EditableTextWidget> {
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     controller.dispose();
     super.dispose();
   }
@@ -48,25 +65,31 @@ class _EditableTextWidgetState extends State<EditableTextWidget> {
   Widget build(BuildContext context) {
     if (!isEditing) {
       return GestureDetector(
-        onTap: () => setState(() => isEditing = true),
+        onTap: () => setState(() {
+          isEditing = true;
+          controller.text = widget.text;
+        }),
         child: Text(widget.text, style: widget.style, textAlign: widget.align),
       );
     }
 
     return TextField(
       controller: controller,
+      focusNode: _focusNode,
       autofocus: true,
-      maxLines: widget.maxLines,
+      maxLines: widget.singleLine ? 1 : widget.maxLines,
+      minLines: widget.singleLine ? 1 : null,
       style: widget.style,
       textAlign: widget.align ?? TextAlign.start,
-      onSubmitted: (val) {
-        widget.onChanged(val);
-        setState(() => isEditing = false);
-      },
-      onEditingComplete: () {
-        widget.onChanged(controller.text);
-        setState(() => isEditing = false);
-      },
+      decoration: InputDecoration(
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(
+          vertical: widget.singleLine ? 6 : 8,
+          horizontal: 0,
+        ),
+        border: InputBorder.none,
+      ),
+      onSubmitted: (_) => _commitEdit(),
     );
   }
 }

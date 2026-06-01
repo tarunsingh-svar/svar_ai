@@ -65,8 +65,10 @@ class TranscribeController extends GetxController {
           .from('transcribe')
           .insert({
             "user_id": user.id,
-            "title": "",
+            "title": "Untitled Note",
             "transcribe_text": "",
+            "summary_text": "",
+            "duration_seconds": recordingDurationSeconds.value,
             "tags": [],
           })
           .select()
@@ -110,6 +112,8 @@ class TranscribeController extends GetxController {
           title: old.title,
           tags: old.tags,
           transcribeText: text,
+          summaryText: old.summaryText,
+          durationSeconds: old.durationSeconds,
         );
       }
 
@@ -121,6 +125,10 @@ class TranscribeController extends GetxController {
 
   /// ✅ Update title
   Future<void> updateTitle(int id, String title) async {
+    if (id == 0) {
+      logger.i("⛔ updateTitle skipped: invalid note id");
+      return;
+    }
     logger.i("✏️ updateTitle -> id: $id, title: $title");
 
     try {
@@ -140,6 +148,8 @@ class TranscribeController extends GetxController {
           createdAt: old.createdAt,
           updatedAt: DateTime.now(),
           transcribeText: old.transcribeText,
+          summaryText: old.summaryText,
+          durationSeconds: old.durationSeconds,
           tags: old.tags,
           title: title,
         );
@@ -148,6 +158,63 @@ class TranscribeController extends GetxController {
       logger.i("🟢 Local update done for ID: $id");
     } catch (e, s) {
       logger.i("❌ updateTitle Error: $e\n$s");
+    }
+  }
+
+  Future<void> updateSummaryText(int id, String summary) async {
+    if (id == 0) return;
+    try {
+      await _supabase
+          .from('transcribe')
+          .update({"summary_text": summary})
+          .eq('id', id);
+
+      final index = allUsersTranscribe.indexWhere((item) => item.id == id);
+      if (index != -1) {
+        final old = allUsersTranscribe[index];
+        allUsersTranscribe[index] = TranscribeModel(
+          id: old.id,
+          userId: old.userId,
+          createdAt: old.createdAt,
+          updatedAt: DateTime.now(),
+          title: old.title,
+          tags: old.tags,
+          transcribeText: old.transcribeText,
+          summaryText: summary,
+          durationSeconds: old.durationSeconds,
+        );
+      }
+    } catch (e, s) {
+      logger.i("❌ updateSummaryText Error: $e\n$s");
+    }
+  }
+
+  Future<void> updateDurationSeconds(int id, int seconds) async {
+    if (id == 0) return;
+    recordingDurationSeconds.value = seconds;
+    try {
+      await _supabase
+          .from('transcribe')
+          .update({"duration_seconds": seconds})
+          .eq('id', id);
+
+      final index = allUsersTranscribe.indexWhere((item) => item.id == id);
+      if (index != -1) {
+        final old = allUsersTranscribe[index];
+        allUsersTranscribe[index] = TranscribeModel(
+          id: old.id,
+          userId: old.userId,
+          createdAt: old.createdAt,
+          updatedAt: DateTime.now(),
+          title: old.title,
+          tags: old.tags,
+          transcribeText: old.transcribeText,
+          summaryText: old.summaryText,
+          durationSeconds: seconds,
+        );
+      }
+    } catch (e, s) {
+      logger.i("❌ updateDurationSeconds Error: $e\n$s");
     }
   }
 
@@ -172,6 +239,8 @@ class TranscribeController extends GetxController {
           createdAt: old.createdAt,
           updatedAt: DateTime.now(),
           transcribeText: old.transcribeText,
+          summaryText: old.summaryText,
+          durationSeconds: old.durationSeconds,
           title: old.title,
           tags: tags,
         );

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'dart:io';
 import '../../services/ai_service.dart';
+import 'transcribe_controller.dart';
 
 class AIController extends GetxController {
   final AIService _service = AIService();
@@ -190,6 +191,13 @@ class AIController extends GetxController {
   // ✅ Internal
   // ===============================
 
+  Future<void> _persistSummaryToDb() async {
+    final id = Get.find<TranscribeController>().thisNoteId.value;
+    if (id == 0 || generatedText.value.isEmpty) return;
+    await Get.find<TranscribeController>()
+        .updateSummaryText(id, generatedText.value);
+  }
+
   Future<void> _generateContent(Future<String?> Function() call) async {
     try {
       isSummaryLoading.value = true;
@@ -201,6 +209,7 @@ class AIController extends GetxController {
       } else {
         generatedText.value = text;
       }
+      await _persistSummaryToDb();
     } catch (e) {
       generatedText.value = "Error: $e";
     } finally {

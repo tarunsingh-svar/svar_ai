@@ -91,10 +91,8 @@ class _RecordPageState extends State<RecordPage> {
     if (path != null) {
       recordedFilePath = path;
       transcribeController.recordingDurationSeconds.value = seconds.value;
-
-      addNewTranscribe(path);
-
       Get.back();
+      await addNewTranscribe(path);
       Get.toNamed(AppRoutes.recordingNotePage);
     } else {
       Get.snackbar("Error", "Failed to save recording");
