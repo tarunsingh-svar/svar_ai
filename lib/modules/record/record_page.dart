@@ -90,6 +90,7 @@ class _RecordPageState extends State<RecordPage> {
 
     if (path != null) {
       recordedFilePath = path;
+      transcribeController.recordingDurationSeconds.value = seconds.value;
 
       addNewTranscribe(path);
 
@@ -108,13 +109,23 @@ class _RecordPageState extends State<RecordPage> {
     aiController.transcriptText.value = '';
     // 1️⃣ Insert row first → get row ID
     final int? newId = await transcribeController.addNewTranscribe();
+    if (newId == null) {
+      Get.snackbar(
+        'Save failed',
+        'Could not create note. Sign out, sign in again, then retry.',
+      );
+      return;
+    }
 
     // 2️⃣ Send audio to AI → get transcribed text
     final transcribeText = await aiController.transcribeAudio(File(path));
 
-    // 3️⃣ Update that row
-    if (newId != null && transcribeText != null && transcribeText.length > 50) {
-      await transcribeController.updateTranscribeText(newId, transcribeText);
+    // 3️⃣ Update that row (any non-error transcript)
+    final text = transcribeText?.trim() ?? '';
+    final canUpdate =
+        text.isNotEmpty && !text.startsWith('Error:') && text != 'No transcript found';
+    if (canUpdate) {
+      await transcribeController.updateTranscribeText(newId, text);
     }
   }
 

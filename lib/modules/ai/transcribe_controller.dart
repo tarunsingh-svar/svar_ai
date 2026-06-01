@@ -6,8 +6,20 @@ import '../../data/models/transcribe_model.dart';
 class TranscribeController extends GetxController {
   final _supabase = Supabase.instance.client;
   final thisNoteId = 0.obs;
+  final recordingDurationSeconds = 0.obs;
 
   RxList<TranscribeModel> allUsersTranscribe = <TranscribeModel>[].obs;
+
+  TranscribeModel? get currentNote {
+    final id = thisNoteId.value;
+    if (id == 0) return null;
+    for (final note in allUsersTranscribe) {
+      if (note.id == id) return note;
+    }
+    return null;
+  }
+
+  List<String> get currentTags => currentNote?.tags ?? [];
 
   /// ✅ Fetch all user transcriptions
   Future<void> fetchAllUsersTranscribes() async {

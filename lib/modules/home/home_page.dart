@@ -175,6 +175,13 @@ class _HomePageState extends State<HomePage> {
                         return InkWell(
                           onTap: () {
                             transcribeController.thisNoteId.value = note.id;
+                            transcribeController.recordingDurationSeconds.value =
+                                0;
+                            final title = note.title?.trim();
+                            aiController.headingText.value =
+                                (title != null && title.isNotEmpty)
+                                    ? title
+                                    : 'Untitled Note';
                             aiController.transcriptText.value =
                                 note.transcribeText ?? '';
                             aiController.getSummary();

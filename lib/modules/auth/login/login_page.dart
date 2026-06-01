@@ -46,11 +46,14 @@ class LoginPage extends StatelessWidget {
               SizedBox(height: 3.h),
 
               // Google Sign-In Button
-              InkWell(
-                onTap: () async {
-                  await loginController.loginWithGoogle();
-                },
-                child: WhiteCard(
+              Obx(
+                () => InkWell(
+                  onTap: loginController.isLoading.value
+                      ? null
+                      : () async {
+                          await loginController.loginWithGoogle();
+                        },
+                  child: WhiteCard(
                   width: double.infinity,
                   height: 6.h,
                   borderRadius: 10,
@@ -61,7 +64,9 @@ class LoginPage extends StatelessWidget {
                       Image.asset(AppAssets.google, height: 3.h),
                       SizedBox(width: 5.w),
                       Text(
-                        'Continue with Google',
+                        loginController.isLoading.value
+                            ? 'Signing in...'
+                            : 'Continue with Google',
                         style: AppTextTheme.button.copyWith(
                           color: AppColors.textBlack,
                           fontSize: 17,
@@ -70,6 +75,7 @@ class LoginPage extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
               ),
 
               SizedBox(height: 3.h),

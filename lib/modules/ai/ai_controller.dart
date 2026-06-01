@@ -6,6 +6,7 @@ class AIController extends GetxController {
   final AIService _service = AIService();
 
   var isLoading = false.obs;
+  var isSummaryLoading = false.obs;
 
   var generatedText = "".obs;
   var transcriptText = "".obs;
@@ -25,17 +26,20 @@ class AIController extends GetxController {
   Future<String?> transcribeAudio(File audioFile) async {
     try {
       isLoading.value = true;
+      isSummaryLoading.value = false;
       transcriptText.value = "";
       generatedText.value = "";
       final transcript = await _service.transcribeAudio(audioFile);
       transcriptText.value = transcript ?? "No transcript found";
-      getSummary();
+      isLoading.value = false;
+      await getSummary();
       return transcript ?? "No transcript found";
     } catch (e) {
       transcriptText.value = "Error: $e";
       return "Error: $e";
     } finally {
       isLoading.value = false;
+      isSummaryLoading.value = false;
     }
   }
 
@@ -188,14 +192,19 @@ class AIController extends GetxController {
 
   Future<void> _generateContent(Future<String?> Function() call) async {
     try {
-      isLoading.value = true;
-      generatedText.value = "";
+      isSummaryLoading.value = true;
       final result = await call();
-      generatedText.value = result ?? "No content generated";
+      final text = result ?? "No content generated";
+      if (text == "Error generating text") {
+        generatedText.value =
+            "Summary could not be generated. Add OPENAI_API_KEY on the Render server.";
+      } else {
+        generatedText.value = text;
+      }
     } catch (e) {
       generatedText.value = "Error: $e";
     } finally {
-      isLoading.value = false;
+      isSummaryLoading.value = false;
     }
   }
 }

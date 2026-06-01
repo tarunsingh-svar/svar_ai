@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:svar_ai/core/constants/auth_redirect.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
 
 class LoginController extends GetxController {
@@ -29,26 +31,32 @@ class LoginController extends GetxController {
   }
 
   Future<void> loginWithGoogle() async {
+    if (isLoading.value) return;
     try {
-      // This will open the Google Sign-In flow (via the web view or deep link)
+      isLoading.value = true;
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        // You must specify a custom scheme and path for mobile deep linking
-        // This path must match your configured redirect URI in Google Cloud and Supabase
-        redirectTo: 'com.svar.ai://login-callback/',
-        authScreenLaunchMode: LaunchMode.platformDefault,
+        redirectTo: kIsWeb ? null : kAuthRedirectUrl,
+        authScreenLaunchMode: kIsWeb
+            ? LaunchMode.platformDefault
+            : LaunchMode.externalApplication,
       );
-
-      // if (res == true) {
-      //   Get.offAll(AppRoutes.home);
-      // }
-      // The user will be redirected back to your app
     } on AuthException catch (e) {
-      // Handle error
-      print('Google sign-in error: ${e.message}');
+      debugPrint('Google sign-in error: ${e.message}');
+      Get.snackbar(
+        'Sign-in failed',
+        e.message,
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
-      // Handle other exceptions
-      print('An unexpected error occurred: $e');
+      debugPrint('Google sign-in error: $e');
+      Get.snackbar(
+        'Sign-in failed',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isLoading.value = false;
     }
   }
 

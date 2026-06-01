@@ -1,13 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'environment.dart';
+
 // Make Supabase client globally accessible
 final SupabaseClient supabase = Supabase.instance.client;
 
-/// Initializes Supabase before app launch
+/// Initializes Supabase before app launch (prefer [main.dart] init).
 Future<void> initSupabase() async {
   await Supabase.initialize(
-    url:
-        'https://YOUR_PROJECT_URL.supabase.co', // replace with your project URL
-    anonKey: 'YOUR_ANON_KEY', // replace with your anon/public API key
+    url: Environment.supabaseUrl,
+    anonKey: Environment.supabaseAnonKey,
   );
 }

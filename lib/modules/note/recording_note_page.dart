@@ -8,6 +8,7 @@ import 'package:svar_ai/modules/ai/ai_controller.dart';
 import 'package:svar_ai/modules/note/note_pages.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/helpers/note_formatters.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../widgets/white_card.dart';
 import '../../widgets/editable_text_widget.dart';
@@ -25,16 +26,60 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
   final AIController aiController = Get.find();
   final TranscribeController transcribeController = Get.find();
 
-  final RxInt selectedTab = 1.obs;
+  final RxInt selectedTab = 0.obs;
 
-  getData() async {}
+  static const _tagColors = [
+    AppColors.cardYellow,
+    AppColors.cardGreen,
+    AppColors.cardPurple,
+  ];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      await getData();
-    });
+    _syncNoteHeaderFromDb();
+  }
+
+  void _syncNoteHeaderFromDb() {
+    final note = transcribeController.currentNote;
+    if (note == null) return;
+    final title = note.title?.trim();
+    aiController.headingText.value =
+        (title != null && title.isNotEmpty) ? title : 'Untitled Note';
+  }
+
+  Future<void> _showAddTagDialog() async {
+    final noteId = transcribeController.thisNoteId.value;
+    if (noteId == 0) return;
+
+    final tagController = TextEditingController();
+    final added = await Get.dialog<String>(
+      AlertDialog(
+        title: const Text('Add tag'),
+        content: TextField(
+          controller: tagController,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Tag name'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              final tag = tagController.text.trim();
+              if (tag.isNotEmpty) Get.back(result: tag);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+
+    if (added == null || added.isEmpty) return;
+
+    final tags = List<String>.from(transcribeController.currentTags);
+    if (tags.contains(added)) return;
+    tags.add(added);
+    await transcribeController.updateTags(noteId, tags);
   }
 
   @override
@@ -47,8 +92,6 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔙 Back icon
-              SizedBox(height: 3.h),
               InkWell(
                 onTap: () => Get.back(),
                 child: Icon(
@@ -73,7 +116,7 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                   return SingleChildScrollView(
                     child: selectedTab.value == 0
                         ? Obx(() {
-                            if (aiController.generatedText.isEmpty) {
+                            if (aiController.isSummaryLoading.value) {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -153,18 +196,10 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                               );
                             }
 
-                            // 🔹 NORMAL UI (your original content)
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SizedBox(height: 3.h),
-                                // Text(
-                                //   "Svar AI Demo Recording",
-                                //   style: AppTextTheme.h4.copyWith(
-                                //     fontWeight: FontWeight.w600,
-                                //     color: AppColors.textBlack,
-                                //   ),
-                                // ),
+                                SizedBox(height: 2.h),
                                 EditableTextWidget(
                                   text: aiController.headingText.value,
                                   style: AppTextTheme.h4.copyWith(
@@ -172,64 +207,77 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                                     color: AppColors.textBlack,
                                   ),
                                   onChanged: (val) {
+                                    aiController.headingText.value = val;
                                     transcribeController.updateTitle(
                                       transcribeController.thisNoteId.value,
                                       val,
                                     );
-                                    return aiController.headingText.value = val;
                                   },
                                 ),
 
                                 SizedBox(height: .5.h),
-                                Text(
-                                  "October 13, 2025   •   12 min 48 sec",
-                                  style: AppTextTheme.body3.copyWith(
-                                    color: AppColors.textBlack,
-                                  ),
-                                ),
+                                Obx(() {
+                                  final note = transcribeController.currentNote;
+                                  final dateText = note != null
+                                      ? formatNoteDate(note.createdAt)
+                                      : formatNoteDate(DateTime.now());
+                                  final durationText = formatRecordingDuration(
+                                    transcribeController
+                                        .recordingDurationSeconds.value,
+                                  );
+                                  return Text(
+                                    '$dateText   •   $durationText',
+                                    style: AppTextTheme.body3.copyWith(
+                                      color: AppColors.textBlack,
+                                    ),
+                                  );
+                                }),
                                 SizedBox(height: 2.h),
 
-                                Row(
-                                  children: [
-                                    TagCard(
-                                      text: "All",
-                                      color: AppColors.cardYellow,
-                                    ),
-                                    SizedBox(width: 2.w),
-                                    TagCard(
-                                      text: "Office",
-                                      color: AppColors.cardGreen,
-                                    ),
-                                    SizedBox(width: 2.w),
-                                    TagCard(
-                                      text: "Kalpataru",
-                                      color: AppColors.cardPurple,
-                                    ),
-                                    SizedBox(width: 2.w),
-                                    InkWell(
-                                      onTap: () {},
-                                      borderRadius: BorderRadius.circular(8.sp),
-                                      child: Container(
-                                        height: 3.8.h,
-                                        width: 3.8.h,
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                            color: AppColors.grey400,
-                                            width: 1,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            8.sp,
+                                Obx(() {
+                                  final tags = transcribeController.currentTags;
+                                  return SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: [
+                                        ...List.generate(tags.length, (i) {
+                                          return Padding(
+                                            padding: EdgeInsets.only(
+                                              right: 2.w,
+                                            ),
+                                            child: TagCard(
+                                              text: tags[i],
+                                              color: _tagColors[
+                                                  i % _tagColors.length],
+                                            ),
+                                          );
+                                        }),
+                                        InkWell(
+                                          onTap: _showAddTagDialog,
+                                          borderRadius:
+                                              BorderRadius.circular(8.sp),
+                                          child: Container(
+                                            height: 3.8.h,
+                                            width: 3.8.h,
+                                            decoration: BoxDecoration(
+                                              border: Border.all(
+                                                color: AppColors.grey400,
+                                                width: 1,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(8.sp),
+                                            ),
+                                            child: Icon(
+                                              Icons.add_rounded,
+                                              size: 18.sp,
+                                              color: AppColors.grey600,
+                                            ),
                                           ),
                                         ),
-                                        child: Icon(
-                                          Icons.add_rounded,
-                                          size: 18.sp,
-                                          color: AppColors.grey600,
-                                        ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  );
+                                }),
 
                                 SizedBox(height: 2.5.h),
                                 Text(

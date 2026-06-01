@@ -16,6 +16,9 @@ Future<void> main() async {
   await Supabase.initialize(
     url: Environment.supabaseUrl,
     anonKey: Environment.supabaseAnonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce,
+    ),
   );
 
   runApp(const MyApp());

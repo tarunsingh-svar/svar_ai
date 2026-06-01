@@ -1,16 +1,59 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import '../core/debug_agent_log.dart';
 import '../core/helpers/api_helper.dart';
 
 class AIService {
   final ApiHelper _apiHelper = ApiHelper();
 
+  String? _extractSummary(dynamic data) {
+    if (data == null) return null;
+    if (data is Map) {
+      final summary = data['summary'];
+      return summary?.toString();
+    }
+    if (data is String) {
+      try {
+        final decoded = jsonDecode(data);
+        if (decoded is Map) return decoded['summary']?.toString();
+      } catch (_) {
+        return data.startsWith('<') ? null : data;
+      }
+    }
+    return null;
+  }
+
   Future<String?> summariseText(String input) async {
+    // #region agent log
+    agentDebugLog(
+      location: 'ai_service.dart:summariseText:entry',
+      message: 'summarize request',
+      hypothesisId: 'A',
+      data: {'textLength': input.length, 'method': 'POST'},
+    );
+    // #endregion
     Response? res = await _apiHelper.sendRequest(
       endpoint: "/summarize",
-      query: {"text": input},
+      method: "POST",
+      data: {"text": input},
     );
-    return res?.data?["summary"];
+    final raw = res?.data;
+    // #region agent log
+    agentDebugLog(
+      location: 'ai_service.dart:summariseText:response',
+      message: 'summarize response received',
+      hypothesisId: 'A,B',
+      data: {
+        'statusCode': res?.statusCode,
+        'dataType': raw?.runtimeType.toString(),
+        'dataPreview': raw is String
+            ? raw.substring(0, raw.length.clamp(0, 80))
+            : (raw is Map ? 'Map' : null),
+      },
+    );
+    // #endregion
+    return _extractSummary(raw);
   }
 
   Future<String?> transcribeAudio(File audioFile) async {

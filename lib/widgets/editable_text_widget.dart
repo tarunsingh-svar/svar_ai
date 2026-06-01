@@ -31,6 +31,20 @@ class _EditableTextWidgetState extends State<EditableTextWidget> {
   }
 
   @override
+  void didUpdateWidget(EditableTextWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text && !isEditing) {
+      controller.text = widget.text;
+    }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (!isEditing) {
       return GestureDetector(
