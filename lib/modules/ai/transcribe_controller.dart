@@ -7,6 +7,7 @@ class TranscribeController extends GetxController {
   final _supabase = Supabase.instance.client;
   final thisNoteId = 0.obs;
   final recordingDurationSeconds = 0.obs;
+  final currentAudioPath = ''.obs;
 
   RxList<TranscribeModel> allUsersTranscribe = <TranscribeModel>[].obs;
 
@@ -85,6 +86,52 @@ class TranscribeController extends GetxController {
       return newItem.id;
     } catch (e, s) {
       logger.i("❌ addNewTranscribe Error: $e\n$s");
+      return null;
+    }
+  }
+
+  /// Create a manual text note (no recording).
+  Future<int?> addManualNote({
+    required String title,
+    required String body,
+    List<String> tags = const [],
+  }) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) {
+      logger.i("⛔ addManualNote: No user logged in");
+      return null;
+    }
+
+    final trimmedTitle =
+        title.trim().isEmpty ? 'Untitled Note' : title.trim();
+    final trimmedBody = body.trim();
+
+    logger.i("📌 Creating manual note for user: ${user.id}");
+
+    try {
+      final data = await _supabase
+          .from('transcribe')
+          .insert({
+            "user_id": user.id,
+            "title": trimmedTitle,
+            "transcribe_text": trimmedBody,
+            "summary_text": trimmedBody,
+            "duration_seconds": 0,
+            "tags": tags,
+          })
+          .select()
+          .single();
+
+      logger.i("✅ addManualNote Response: $data");
+
+      final newItem = TranscribeModel.fromJson(data);
+      allUsersTranscribe.insert(0, newItem);
+
+      logger.i("🟢 Inserted manual note with ID: ${newItem.id}");
+
+      return newItem.id;
+    } catch (e, s) {
+      logger.i("❌ addManualNote Error: $e\n$s");
       return null;
     }
   }

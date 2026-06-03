@@ -87,8 +87,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                             child: Text(
                               filter,
-                              style: AppTextTheme.body2.copyWith(
-                                fontWeight: FontWeight.w600,
+                              style: AppTextTheme.homeFilterChip.copyWith(
                                 color: isSelected
                                     ? AppColors.white
                                     : AppColors.textGrey,
@@ -232,10 +231,7 @@ class _HomePageState extends State<HomePage> {
                                           (note.title ?? "").trim().isNotEmpty
                                               ? note.title!.trim()
                                               : "Untitled Note",
-                                          style: AppTextTheme.body2.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.textBlack,
-                                          ),
+                                          style: AppTextTheme.homeCardTitle,
                                         ),
                                         SizedBox(height: 1.h),
                                         Text(
@@ -245,9 +241,7 @@ class _HomePageState extends State<HomePage> {
                                               : "Processing...",
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: AppTextTheme.body3.copyWith(
-                                            color: AppColors.textBlack,
-                                          ),
+                                          style: AppTextTheme.homeCardBody,
                                         ),
                                         SizedBox(height: 1.h),
                                         Text(

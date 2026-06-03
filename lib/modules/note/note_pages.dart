@@ -1,7 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:svar_ai/core/routing/app_routes.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:svar_ai/core/helpers/note_copy_helper.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
@@ -9,6 +15,8 @@ import '../../../core/theme/text_styles.dart';
 import '../../../widgets/white_card.dart';
 import '../../widgets/custom_bottom_sheet.dart';
 import '../../widgets/tag_card.dart';
+import '../ai/ai_controller.dart';
+import '../ai/transcribe_controller.dart';
 import 'widgets/rewrite_bottom_sheet.dart';
 
 class NotePage extends StatelessWidget {
@@ -250,9 +258,7 @@ class BottomFloatingButtons extends StatelessWidget {
             child: Image.asset(AppAssets.spark, width: 12.w),
           ),
           InkWell(
-            onTap: () {
-              Get.toNamed(AppRoutes.recordingNotePage);
-            },
+            onTap: _showCopyTextSheet,
             child: Image.asset(AppAssets.note, width: 12.w),
           ),
           InkWell(
@@ -317,7 +323,7 @@ class BottomFloatingButtons extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.surface.withOpacity(0.2),
+                            color: AppColors.surface.withValues(alpha: 0.2),
                             blurRadius: 6,
                             offset: const Offset(0, 3),
                           ),
@@ -358,14 +364,15 @@ class BottomFloatingButtons extends StatelessWidget {
             },
             child: Image.asset(AppAssets.plus, width: 12.w),
           ),
+          // 4th: Share — opens PDF sharing options
           InkWell(
-            onTap: () {},
+            onTap: () => _showPdfShareSheet(),
             child: Image.asset(AppAssets.share, width: 12.w),
           ),
+
+          // 5th: Three-dot — Download audio + Delete note
           InkWell(
-            onTap: () {
-              showShareOptionsSheet(context);
-            },
+            onTap: () => _showMoreOptionsSheet(),
             child: Image.asset(AppAssets.threeDots, height: 4.h),
           ),
         ],
@@ -373,84 +380,348 @@ class BottomFloatingButtons extends StatelessWidget {
     );
   }
 
-  void showShareOptionsSheet(BuildContext context) {
+  /// 2nd button: copy note text options
+  void _showCopyTextSheet() {
     showCustomBottomSheet(
       topRadius: 22,
       backgroundColor: AppColors.surface,
       padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
       children: [
-        // 🔵 Share PDF button
-        InkWell(
+        _sheetButton(
+          label: 'Copy Summary',
+          icon: Icons.summarize_outlined,
+          isPrimary: true,
           onTap: () {
-            // share PDF logic
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 4.w),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Share PDF",
-                  style: AppTextTheme.body2.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 16.sp,
-                  color: Colors.white,
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        SizedBox(height: 1.5.h),
-
-        // ⚪ Copy Text button
-        InkWell(
-          onTap: () {
-            // copy text logic
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 4.w),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.2),
-                width: 1,
+            copyTextToClipboard(
+              buildRecordingNoteCopyText(
+                includeTitle: true,
+                includeSummary: true,
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Copy text",
-                  style: AppTextTheme.body2.copyWith(
-                    color: AppColors.textBlack,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 16.sp,
-                  color: AppColors.grey600,
-                ),
-              ],
-            ),
-          ),
+            );
+          },
+        ),
+        SizedBox(height: 1.5.h),
+        _sheetButton(
+          label: 'Copy Transcript',
+          icon: Icons.description_outlined,
+          isPrimary: false,
+          onTap: () {
+            copyTextToClipboard(
+              buildRecordingNoteCopyText(
+                includeTitle: true,
+                includeTranscript: true,
+              ),
+            );
+          },
+        ),
+        SizedBox(height: 1.5.h),
+        _sheetButton(
+          label: 'Copy Full Note',
+          icon: Icons.content_copy_outlined,
+          isPrimary: false,
+          onTap: () {
+            copyTextToClipboard(
+              buildRecordingNoteCopyText(
+                includeTitle: true,
+                includeSummary: true,
+                includeTranscript: true,
+              ),
+            );
+          },
         ),
       ],
+    );
+  }
+
+  /// 4th button: Share PDF of transcript or summary
+  void _showPdfShareSheet() {
+    showCustomBottomSheet(
+      topRadius: 22,
+      backgroundColor: AppColors.surface,
+      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
+      children: [
+        _sheetButton(
+          label: "Share PDF of Transcript",
+          icon: Icons.description_outlined,
+          isPrimary: true,
+          onTap: () {
+            Get.back();
+            _generateAndSharePdf(isTranscript: true);
+          },
+        ),
+        SizedBox(height: 1.5.h),
+        _sheetButton(
+          label: "Share PDF of Summary",
+          icon: Icons.summarize_outlined,
+          isPrimary: false,
+          onTap: () {
+            Get.back();
+            _generateAndSharePdf(isTranscript: false);
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _generateAndSharePdf({required bool isTranscript}) async {
+    final ai = Get.isRegistered<AIController>() ? Get.find<AIController>() : null;
+    final tc = Get.isRegistered<TranscribeController>()
+        ? Get.find<TranscribeController>()
+        : null;
+
+    final title = ai?.headingText.value ?? 'Note';
+    final body = isTranscript
+        ? (ai?.transcriptText.value ?? '')
+        : (ai?.generatedText.value ?? '');
+    final label = isTranscript ? 'Transcript' : 'Summary';
+    final dateText = tc?.currentNote != null
+        ? _formatDate(tc!.currentNote!.createdAt)
+        : _formatDate(DateTime.now());
+
+    if (body.trim().isEmpty) {
+      Get.snackbar(
+        "$label unavailable",
+        "There is no $label content to share yet.",
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    try {
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(40),
+          build: (pw.Context ctx) => [
+            // Header
+            pw.Text(
+              title,
+              style: pw.TextStyle(
+                fontSize: 22,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.SizedBox(height: 6),
+            pw.Text(
+              '$dateText   •   $label',
+              style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+            ),
+            pw.Divider(height: 24, color: PdfColors.grey400),
+            // Body text — preserve line breaks
+            ...body.split('\n').map(
+              (line) => pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 4),
+                child: pw.Text(
+                  line,
+                  style: const pw.TextStyle(fontSize: 12, lineSpacing: 4),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      final dir = await getTemporaryDirectory();
+      final safeName = title.replaceAll(RegExp(r'[^a-zA-Z0-9_\- ]'), '').trim();
+      final fileName = '${safeName}_$label.pdf';
+      final file = File('${dir.path}/$fileName');
+      await file.writeAsBytes(await pdf.save());
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: '$title — $label',
+      );
+    } catch (e) {
+      Get.snackbar(
+        "Error",
+        "Failed to generate PDF. Please try again.",
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  String _formatDate(DateTime dt) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+  }
+
+  /// 5th button (three-dot): Download audio + Delete note
+  void _showMoreOptionsSheet() {
+    showCustomBottomSheet(
+      topRadius: 22,
+      backgroundColor: AppColors.surface,
+      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
+      children: [
+        _sheetButton(
+          label: "Download Audio",
+          icon: Icons.download_outlined,
+          isPrimary: true,
+          onTap: () {
+            Get.back();
+            _downloadAudio();
+          },
+        ),
+        SizedBox(height: 1.5.h),
+        _sheetButton(
+          label: "Delete Note",
+          icon: Icons.delete_outline_rounded,
+          isPrimary: false,
+          isDestructive: true,
+          onTap: () {
+            Get.back();
+            _confirmDeleteNote();
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _downloadAudio() async {
+    final transcribeController = Get.isRegistered<TranscribeController>()
+        ? Get.find<TranscribeController>()
+        : null;
+
+    final audioPath = transcribeController?.currentAudioPath.value ?? '';
+
+    if (audioPath.isEmpty || !File(audioPath).existsSync()) {
+      Get.snackbar(
+        "Audio unavailable",
+        "The audio file for this recording could not be found.",
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    try {
+      await Share.shareXFiles(
+        [XFile(audioPath)],
+        text: "Recording audio file",
+      );
+    } catch (_) {
+      Get.snackbar(
+        "Error",
+        "Failed to share the audio file.",
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  void _confirmDeleteNote() {
+    final transcribeController = Get.isRegistered<TranscribeController>()
+        ? Get.find<TranscribeController>()
+        : null;
+
+    if (transcribeController == null) return;
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          "Delete Note",
+          style: AppTextTheme.body1Medium.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textBlack,
+          ),
+        ),
+        content: Text(
+          "Are you sure you want to delete this note? This action cannot be undone.",
+          style: AppTextTheme.body2.copyWith(color: AppColors.textGrey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              "Cancel",
+              style: AppTextTheme.body2.copyWith(color: AppColors.grey600),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back();
+              final noteId = transcribeController.thisNoteId.value;
+              if (noteId != 0) {
+                await transcribeController.deleteTranscribe(noteId);
+                transcribeController.currentAudioPath.value = '';
+              }
+              Get.until((route) => route.isFirst);
+            },
+            child: Text(
+              "Delete",
+              style: AppTextTheme.body2.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Reusable bottom-sheet row button
+  Widget _sheetButton({
+    required String label,
+    required IconData icon,
+    required bool isPrimary,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    final bgColor = isPrimary ? AppColors.primary : AppColors.white;
+    final labelColor = isPrimary
+        ? Colors.white
+        : (isDestructive ? AppColors.error : AppColors.textBlack);
+    final iconColor = isPrimary
+        ? Colors.white
+        : (isDestructive ? AppColors.error : AppColors.grey600);
+    final arrowColor = isPrimary ? Colors.white : AppColors.grey600;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 4.w),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: isPrimary
+              ? null
+              : Border.all(
+                  color: isDestructive
+                      ? AppColors.error.withValues(alpha: 0.25)
+                      : AppColors.primary.withValues(alpha: 0.2),
+                  width: 1,
+                ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: iconColor, size: 20.sp),
+                SizedBox(width: 3.w),
+                Text(
+                  label,
+                  style: AppTextTheme.body2.copyWith(
+                    color: labelColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16.sp,
+              color: arrowColor,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

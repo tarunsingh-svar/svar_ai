@@ -91,6 +91,7 @@ class _RecordPageState extends State<RecordPage> {
     if (path != null) {
       recordedFilePath = path;
       transcribeController.recordingDurationSeconds.value = seconds.value;
+      transcribeController.currentAudioPath.value = path;
       Get.back();
       await addNewTranscribe(path);
       Get.toNamed(AppRoutes.recordingNotePage);

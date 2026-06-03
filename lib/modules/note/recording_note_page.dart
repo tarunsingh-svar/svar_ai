@@ -13,6 +13,7 @@ import '../../../core/theme/text_styles.dart';
 import '../../../widgets/white_card.dart';
 import '../../widgets/editable_text_widget.dart';
 import '../../widgets/tag_card.dart';
+import '../../widgets/tag_picker_sheet.dart';
 import '../ai/transcribe_controller.dart';
 
 class RecordingNotePage extends StatefulWidget {
@@ -60,34 +61,12 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
     final noteId = transcribeController.thisNoteId.value;
     if (noteId == 0) return;
 
-    final tagController = TextEditingController();
-    final added = await Get.dialog<String>(
-      AlertDialog(
-        title: const Text('Add tag'),
-        content: TextField(
-          controller: tagController,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'Tag name'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              final tag = tagController.text.trim();
-              if (tag.isNotEmpty) Get.back(result: tag);
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+    final result = await showTagPickerSheet(
+      selectedTags: transcribeController.currentTags,
     );
+    if (result == null) return;
 
-    if (added == null || added.isEmpty) return;
-
-    final tags = List<String>.from(transcribeController.currentTags);
-    if (tags.contains(added)) return;
-    tags.add(added);
-    await transcribeController.updateTags(noteId, tags);
+    await transcribeController.updateTags(noteId, result);
   }
 
   @override

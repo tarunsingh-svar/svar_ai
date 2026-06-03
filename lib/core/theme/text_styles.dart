@@ -93,6 +93,29 @@ class AppTextTheme {
     color: AppColors.grey500,
   );
 
+  /// Letter spacing at 125% — 1.25% of the font size (Figma-style % tracking).
+  static double letterSpacing125Percent(double fontSize) => fontSize * 1.25 / 100;
+
+  static final TextStyle homeCardTitle = GoogleFonts.redHatText(
+    fontWeight: FontWeight.w600,
+    fontSize: 13,
+    letterSpacing: letterSpacing125Percent(13),
+    color: AppColors.textBlack,
+  );
+
+  static final TextStyle homeCardBody = GoogleFonts.redHatText(
+    fontWeight: FontWeight.w400,
+    fontSize: 11,
+    letterSpacing: letterSpacing125Percent(11),
+    color: AppColors.textBlack,
+  );
+
+  static final TextStyle homeFilterChip = GoogleFonts.redHatText(
+    fontWeight: FontWeight.w600,
+    fontSize: 13,
+    letterSpacing: letterSpacing125Percent(13),
+  );
+
   // ================================
   // THEME MAPPING
   // ================================
