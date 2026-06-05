@@ -9,6 +9,7 @@ import 'package:svar_ai/modules/note/note_pages.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/helpers/note_formatters.dart';
+import '../../../core/helpers/debug_agent_log.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../widgets/white_card.dart';
 import '../../widgets/editable_text_widget.dart';
@@ -28,6 +29,7 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
   final TranscribeController transcribeController = Get.find();
 
   final RxInt selectedTab = 0.obs;
+  late final PageController _pageController;
 
   static const _tagColors = [
     AppColors.cardYellow,
@@ -38,7 +40,27 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: selectedTab.value);
     _syncNoteHeaderFromDb();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      transcribeController.restoreAudioPathForCurrentNote();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onTabSelected(int index) {
+    if (selectedTab.value == index) return;
+    selectedTab.value = index;
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _syncNoteHeaderFromDb() {
@@ -55,6 +77,22 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
       transcribeController.recordingDurationSeconds.value =
           note.durationSeconds;
     }
+
+    // #region agent log
+    debugAgentLog(
+      'recording_note_page.dart:_syncNoteHeaderFromDb',
+      'sync note header from db',
+      {
+        'noteId': note.id,
+        'dbTranscriptLen': (note.transcribeText ?? '').length,
+        'dbSummaryLen': (note.summaryText ?? '').length,
+        'aiTranscriptLen': aiController.transcriptText.value.length,
+        'aiSummaryLen': aiController.generatedText.value.length,
+        'overwroteSummary': savedSummary != null && savedSummary.isNotEmpty,
+      },
+      hypothesisId: 'E',
+    );
+    // #endregion
   }
 
   Future<void> _showAddTagDialog() async {
@@ -97,313 +135,20 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
                 ],
               ),
 
-              // ✅ Scrollable content
+              // ✅ Swipeable tab content
               Expanded(
-                child: Obx(() {
-                  return SingleChildScrollView(
-                    child: selectedTab.value == 0
-                        ? Obx(() {
-                            if (aiController.isSummaryLoading.value) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(height: 3.h),
-
-                                  _shimmerBox(
-                                    width: 60.w,
-                                    height: 3.h,
-                                  ), // Title
-                                  SizedBox(height: 1.h),
-                                  _shimmerBox(
-                                    width: 40.w,
-                                    height: 2.h,
-                                  ), // Date + Duration
-                                  SizedBox(height: 2.h),
-
-                                  // Tags
-                                  Row(
-                                    children: List.generate(
-                                      4,
-                                      (i) => Padding(
-                                        padding: EdgeInsets.only(right: 2.w),
-                                        child: _shimmerBox(
-                                          width: 15.w,
-                                          height: 4.h,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 2.5.h),
-
-                                  // Summary Title
-                                  _shimmerBox(width: 30.w, height: 2.5.h),
-                                  SizedBox(height: 2.h),
-
-                                  // Summary Paragraph Lines
-                                  ...List.generate(
-                                    4,
-                                    (i) => Padding(
-                                      padding: EdgeInsets.only(bottom: 1.5.h),
-                                      child: _shimmerBox(
-                                        width: (50 + Random().nextInt(40)).w,
-                                        height: 2.h,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 3.h),
-
-                                  // Action Items Title
-                                  _shimmerBox(width: 30.w, height: 2.5.h),
-                                  SizedBox(height: 2.h),
-
-                                  // Bullet list shimmer
-                                  ...List.generate(
-                                    3,
-                                    (i) => Padding(
-                                      padding: EdgeInsets.only(bottom: 1.5.h),
-                                      child: Row(
-                                        children: [
-                                          _shimmerBox(
-                                            width: 2.h,
-                                            height: 2.h,
-                                            isCircle: true,
-                                          ),
-                                          SizedBox(width: 2.w),
-                                          _shimmerBox(
-                                            width:
-                                                (50 + Random().nextInt(30)).w,
-                                            height: 2.h,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 10.h),
-                                ],
-                              );
-                            }
-
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(height: 2.h),
-                                EditableTextWidget(
-                                  text: aiController.headingText.value,
-                                  singleLine: true,
-                                  style: AppTextTheme.h4.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textBlack,
-                                  ),
-                                  onChanged: (val) {
-                                    final title = val.isEmpty
-                                        ? 'Untitled Note'
-                                        : val;
-                                    aiController.headingText.value = title;
-                                    transcribeController.updateTitle(
-                                      transcribeController.thisNoteId.value,
-                                      title,
-                                    );
-                                  },
-                                ),
-
-                                SizedBox(height: .5.h),
-                                Obx(() {
-                                  final note = transcribeController.currentNote;
-                                  final dateText = note != null
-                                      ? formatNoteDate(note.createdAt)
-                                      : formatNoteDate(DateTime.now());
-                                  final secs = note?.durationSeconds ?? 0;
-                                  final durationText = formatRecordingDuration(
-                                    secs > 0
-                                        ? secs
-                                        : transcribeController
-                                            .recordingDurationSeconds.value,
-                                  );
-                                  return Text(
-                                    '$dateText   •   $durationText',
-                                    style: AppTextTheme.body3.copyWith(
-                                      color: AppColors.textBlack,
-                                    ),
-                                  );
-                                }),
-                                SizedBox(height: 2.h),
-
-                                Obx(() {
-                                  final tags = transcribeController.currentTags;
-                                  return SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        ...List.generate(tags.length, (i) {
-                                          return Padding(
-                                            padding: EdgeInsets.only(
-                                              right: 2.w,
-                                            ),
-                                            child: TagCard(
-                                              text: tags[i],
-                                              color: _tagColors[
-                                                  i % _tagColors.length],
-                                            ),
-                                          );
-                                        }),
-                                        InkWell(
-                                          onTap: _showAddTagDialog,
-                                          borderRadius:
-                                              BorderRadius.circular(8.sp),
-                                          child: Container(
-                                            height: 3.8.h,
-                                            width: 3.8.h,
-                                            decoration: BoxDecoration(
-                                              border: Border.all(
-                                                color: AppColors.grey400,
-                                                width: 1,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(8.sp),
-                                            ),
-                                            child: Icon(
-                                              Icons.add_rounded,
-                                              size: 18.sp,
-                                              color: AppColors.grey600,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }),
-
-                                SizedBox(height: 2.5.h),
-                                Text(
-                                  'Summary',
-                                  style: AppTextTheme.body1Medium.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textBlack,
-                                  ),
-                                ),
-                                SizedBox(height: 2.h),
-                                // Text(
-                                //   aiController.generatedText.value,
-                                //   style: AppTextTheme.body2.copyWith(
-                                //     color: AppColors.textBlack,
-                                //     fontSize: 15.sp,
-                                //   ),
-                                // ),
-                                EditableTextWidget(
-                                  text: aiController.generatedText.value,
-                                  style: AppTextTheme.body2.copyWith(
-                                    color: AppColors.textBlack,
-                                    fontSize: 15.sp,
-                                  ),
-                                  maxLines: 200,
-                                  onChanged: (val) {
-                                    aiController.generatedText.value = val;
-                                    transcribeController.updateSummaryText(
-                                      transcribeController.thisNoteId.value,
-                                      val,
-                                    );
-                                  },
-                                ),
-
-                                SizedBox(height: 3.h),
-
-                                // Text(
-                                //   "Action Items",
-                                //   style: AppTextTheme.body1Medium.copyWith(
-                                //     fontWeight: FontWeight.w600,
-                                //     color: AppColors.textBlack,
-                                //   ),
-                                // ),
-                                // SizedBox(height: 2.h),
-                                // _buildBulletPoint(
-                                //   "Real-time transcription accuracy is above 90%.",
-                                // ),
-                                // _buildBulletPoint(
-                                //   "Detected speakers are automatically labeled.",
-                                // ),
-                                // _buildBulletPoint(
-                                //   "Summarization happens within 5 seconds post recording.",
-                                // ),
-                                SizedBox(height: 10.h),
-                              ],
-                            );
-                          })
-                        : Obx(() {
-                            if (aiController.isLoading.value &&
-                                aiController.transcriptText.isEmpty) {
-                              return Padding(
-                                padding: EdgeInsets.only(top: 3.h),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: List.generate(20, (i) {
-                                    double w = (50 + Random().nextInt(40)).w;
-
-                                    return Padding(
-                                      padding: EdgeInsets.only(bottom: 1.5.h),
-                                      child: Shimmer(
-                                        duration: const Duration(
-                                          milliseconds: 800,
-                                        ),
-                                        interval: const Duration(
-                                          milliseconds: 200,
-                                        ),
-                                        child: Container(
-                                          width: w,
-                                          height: 2.h,
-                                          decoration: BoxDecoration(
-                                            color: AppColors.cardGrey,
-                                            borderRadius: BorderRadius.circular(
-                                              5,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ),
-                              );
-                            }
-
-                            if (aiController.transcriptText.value.isEmpty) {
-                              return Column(
-                                children: [
-                                  SizedBox(height: 3.h),
-                                  Text(
-                                    "No transcript found",
-                                    style: AppTextTheme.body2,
-                                  ),
-                                  SizedBox(height: 10.h),
-                                ],
-                              );
-                            }
-
-                            return Column(
-                              children: [
-                                SizedBox(height: 3.h),
-                                // Text(
-                                //   aiController.transcriptText.value,
-                                //   style: AppTextTheme.body2,
-                                // ),
-                                EditableTextWidget(
-                                  text: aiController.transcriptText.value,
-                                  style: AppTextTheme.body2,
-                                  maxLines: 200,
-                                  onChanged: (val) {
-                                    transcribeController.updateTranscribeText(
-                                      transcribeController.thisNoteId.value,
-                                      val,
-                                    );
-                                    return aiController.transcriptText.value =
-                                        val;
-                                  },
-                                ),
-
-                                SizedBox(height: 10.h),
-                              ],
-                            );
-                          }),
-                  );
-                }),
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) => selectedTab.value = index,
+                  children: [
+                    SingleChildScrollView(
+                      child: Obx(_buildStructuredNotesTab),
+                    ),
+                    SingleChildScrollView(
+                      child: Obx(_buildTranscriptTab),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -418,10 +163,238 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
     );
   }
 
+  Widget _buildStructuredNotesTab() {
+    if (aiController.isSummaryLoading.value &&
+        aiController.generatedText.value.trim().isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 3.h),
+          _shimmerBox(width: 60.w, height: 3.h),
+          SizedBox(height: 1.h),
+          _shimmerBox(width: 40.w, height: 2.h),
+          SizedBox(height: 2.h),
+          Row(
+            children: List.generate(
+              4,
+              (i) => Padding(
+                padding: EdgeInsets.only(right: 2.w),
+                child: _shimmerBox(width: 15.w, height: 4.h),
+              ),
+            ),
+          ),
+          SizedBox(height: 2.5.h),
+          _shimmerBox(width: 30.w, height: 2.5.h),
+          SizedBox(height: 2.h),
+          ...List.generate(
+            4,
+            (i) => Padding(
+              padding: EdgeInsets.only(bottom: 1.5.h),
+              child: _shimmerBox(
+                width: (50 + Random().nextInt(40)).w,
+                height: 2.h,
+              ),
+            ),
+          ),
+          SizedBox(height: 3.h),
+          _shimmerBox(width: 30.w, height: 2.5.h),
+          SizedBox(height: 2.h),
+          ...List.generate(
+            3,
+            (i) => Padding(
+              padding: EdgeInsets.only(bottom: 1.5.h),
+              child: Row(
+                children: [
+                  _shimmerBox(width: 2.h, height: 2.h, isCircle: true),
+                  SizedBox(width: 2.w),
+                  _shimmerBox(
+                    width: (50 + Random().nextInt(30)).w,
+                    height: 2.h,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 10.h),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 2.h),
+        EditableTextWidget(
+          text: aiController.headingText.value,
+          singleLine: true,
+          style: AppTextTheme.h4.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textBlack,
+          ),
+          onChanged: (val) {
+            final title = val.isEmpty ? 'Untitled Note' : val;
+            aiController.headingText.value = title;
+            transcribeController.updateTitle(
+              transcribeController.thisNoteId.value,
+              title,
+            );
+          },
+        ),
+        SizedBox(height: .5.h),
+        Obx(() {
+          final note = transcribeController.currentNote;
+          final dateText = note != null
+              ? formatNoteDate(note.createdAt)
+              : formatNoteDate(DateTime.now());
+          final secs = note?.durationSeconds ?? 0;
+          final durationText = formatRecordingDuration(
+            secs > 0
+                ? secs
+                : transcribeController.recordingDurationSeconds.value,
+          );
+          return Text(
+            '$dateText   •   $durationText',
+            style: AppTextTheme.body3.copyWith(
+              color: AppColors.textBlack,
+            ),
+          );
+        }),
+        SizedBox(height: 2.h),
+        Obx(() {
+          final tags = transcribeController.currentTags;
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ...List.generate(tags.length, (i) {
+                  return Padding(
+                    padding: EdgeInsets.only(right: 2.w),
+                    child: TagCard(
+                      text: tags[i],
+                      color: _tagColors[i % _tagColors.length],
+                    ),
+                  );
+                }),
+                InkWell(
+                  onTap: _showAddTagDialog,
+                  borderRadius: BorderRadius.circular(8.sp),
+                  child: Container(
+                    height: 3.8.h,
+                    width: 3.8.h,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: AppColors.grey400,
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8.sp),
+                    ),
+                    child: Icon(
+                      Icons.add_rounded,
+                      size: 18.sp,
+                      color: AppColors.grey600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        SizedBox(height: 2.5.h),
+        Text(
+          'Summary',
+          style: AppTextTheme.body1Medium.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textBlack,
+          ),
+        ),
+        SizedBox(height: 2.h),
+        EditableTextWidget(
+          text: aiController.generatedText.value,
+          style: AppTextTheme.body2.copyWith(
+            color: AppColors.textBlack,
+            fontSize: 15.sp,
+          ),
+          maxLines: 200,
+          onChanged: (val) {
+            aiController.generatedText.value = val;
+            transcribeController.updateSummaryText(
+              transcribeController.thisNoteId.value,
+              val,
+            );
+          },
+        ),
+        SizedBox(height: 10.h),
+      ],
+    );
+  }
+
+  Widget _buildTranscriptTab() {
+    if (aiController.isLoading.value &&
+        aiController.transcriptText.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.only(top: 3.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: List.generate(20, (i) {
+            final w = (50 + Random().nextInt(40)).w;
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: 1.5.h),
+              child: Shimmer(
+                duration: const Duration(milliseconds: 800),
+                interval: const Duration(milliseconds: 200),
+                child: Container(
+                  width: w,
+                  height: 2.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.cardGrey,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      );
+    }
+
+    if (aiController.transcriptText.value.isEmpty) {
+      return Column(
+        children: [
+          SizedBox(height: 3.h),
+          Text(
+            "No transcript found",
+            style: AppTextTheme.body2,
+          ),
+          SizedBox(height: 10.h),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        SizedBox(height: 3.h),
+        EditableTextWidget(
+          text: aiController.transcriptText.value,
+          style: AppTextTheme.body2,
+          maxLines: 200,
+          onChanged: (val) {
+            transcribeController.updateTranscribeText(
+              transcribeController.thisNoteId.value,
+              val,
+            );
+            return aiController.transcriptText.value = val;
+          },
+        ),
+        SizedBox(height: 10.h),
+      ],
+    );
+  }
+
   Widget _buildTab(String title, int index) {
     return Obx(
       () => GestureDetector(
-        onTap: () => selectedTab.value = index,
+        onTap: () => _onTabSelected(index),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [

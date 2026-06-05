@@ -7,7 +7,9 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:svar_ai/core/helpers/audio_download_helper.dart';
 import 'package:svar_ai/core/helpers/note_copy_helper.dart';
+import 'package:svar_ai/core/routing/app_routes.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
@@ -262,106 +264,7 @@ class BottomFloatingButtons extends StatelessWidget {
             child: Image.asset(AppAssets.note, width: 12.w),
           ),
           InkWell(
-            onTap: () {
-              showCustomBottomSheet(
-                children: [
-                  InkWell(
-                    onTap: () {},
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                        vertical: 2.2.h,
-                        horizontal: 4.w,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.mic,
-                                color: AppColors.white,
-                                size: 20.sp,
-                              ),
-                              SizedBox(width: 3.w),
-                              Text(
-                                "Continue in Existing Note",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                  fontSize: 16.sp,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 16.sp,
-                            color: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 1.5.h),
-                  InkWell(
-                    onTap: () {},
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                        vertical: 2.2.h,
-                        horizontal: 4.w,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.surface.withValues(alpha: 0.2),
-                            blurRadius: 6,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.mic,
-                                color: AppColors.primary,
-                                size: 20.sp,
-                              ),
-                              SizedBox(width: 3.w),
-                              Text(
-                                "Start a new recording",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textBlack,
-                                  fontSize: 16.sp,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 16.sp,
-                            color: AppColors.grey600,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
+            onTap: _showRecordingOptionsSheet,
             child: Image.asset(AppAssets.plus, width: 12.w),
           ),
           // 4th: Share — opens PDF sharing options
@@ -377,6 +280,131 @@ class BottomFloatingButtons extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// 3rd button (+): continue recording or start a new note
+  void _showRecordingOptionsSheet() {
+    final transcribeController = Get.isRegistered<TranscribeController>()
+        ? Get.find<TranscribeController>()
+        : null;
+
+    showCustomBottomSheet(
+      children: [
+        InkWell(
+          onTap: () {
+            Get.back();
+            if (transcribeController == null ||
+                transcribeController.thisNoteId.value == 0) {
+              Get.snackbar(
+                'Note unavailable',
+                'Open a saved note before continuing a recording.',
+                snackPosition: SnackPosition.BOTTOM,
+              );
+              return;
+            }
+            transcribeController.prepareContinueRecordingSession();
+            Get.toNamed(AppRoutes.recordPage);
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              vertical: 2.2.h,
+              horizontal: 4.w,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.mic,
+                      color: AppColors.white,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: 3.w),
+                    Text(
+                      "Continue in Existing Note",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                  ],
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16.sp,
+                  color: Colors.white,
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: 1.5.h),
+        InkWell(
+          onTap: () {
+            Get.back();
+            transcribeController?.prepareNewRecordingSession(
+              replaceCurrentNotePage: true,
+            );
+            Get.toNamed(AppRoutes.recordPage);
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              vertical: 2.2.h,
+              horizontal: 4.w,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.surface.withValues(alpha: 0.2),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.mic,
+                      color: AppColors.primary,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: 3.w),
+                    Text(
+                      "Start a new recording",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textBlack,
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                  ],
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16.sp,
+                  color: AppColors.grey600,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -551,22 +579,34 @@ class BottomFloatingButtons extends StatelessWidget {
   }
 
   /// 5th button (three-dot): Download audio + Delete note
-  void _showMoreOptionsSheet() {
+  Future<void> _showMoreOptionsSheet() async {
+    final transcribeController = Get.isRegistered<TranscribeController>()
+        ? Get.find<TranscribeController>()
+        : null;
+
+    if (transcribeController != null) {
+      await transcribeController.restoreAudioPathForCurrentNote();
+    }
+
+    final canDownload = transcribeController?.canDownloadAudio ?? false;
+
     showCustomBottomSheet(
       topRadius: 22,
       backgroundColor: AppColors.surface,
       padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
       children: [
-        _sheetButton(
-          label: "Download Audio",
-          icon: Icons.download_outlined,
-          isPrimary: true,
-          onTap: () {
-            Get.back();
-            _downloadAudio();
-          },
-        ),
-        SizedBox(height: 1.5.h),
+        if (canDownload) ...[
+          _sheetButton(
+            label: "Download Audio",
+            icon: Icons.download_outlined,
+            isPrimary: true,
+            onTap: () {
+              Get.back();
+              _downloadAudio();
+            },
+          ),
+          SizedBox(height: 1.5.h),
+        ],
         _sheetButton(
           label: "Delete Note",
           icon: Icons.delete_outline_rounded,
@@ -586,6 +626,10 @@ class BottomFloatingButtons extends StatelessWidget {
         ? Get.find<TranscribeController>()
         : null;
 
+    if (transcribeController != null) {
+      await transcribeController.restoreAudioPathForCurrentNote();
+    }
+
     final audioPath = transcribeController?.currentAudioPath.value ?? '';
 
     if (audioPath.isEmpty || !File(audioPath).existsSync()) {
@@ -597,15 +641,34 @@ class BottomFloatingButtons extends StatelessWidget {
       return;
     }
 
+    final ai = Get.isRegistered<AIController>() ? Get.find<AIController>() : null;
+    final title = ai?.headingText.value ?? 'Recording';
+
     try {
-      await Share.shareXFiles(
-        [XFile(audioPath)],
-        text: "Recording audio file",
+      final result = await AudioDownloadHelper.downloadAudio(
+        sourcePath: audioPath,
+        suggestedName: title,
+      );
+
+      if (result.success) {
+        Get.snackbar(
+          'Download complete',
+          result.message ?? 'Audio saved to your device.',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+        return;
+      }
+
+      Get.snackbar(
+        'Download failed',
+        result.error ?? 'Could not save the audio file.',
+        snackPosition: SnackPosition.BOTTOM,
       );
     } catch (_) {
       Get.snackbar(
-        "Error",
-        "Failed to share the audio file.",
+        'Download failed',
+        'Could not save the audio file. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
       );
     }

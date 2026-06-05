@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'dart:io';
 import '../../services/ai_service.dart';
+import '../../core/helpers/debug_agent_log.dart';
 import 'transcribe_controller.dart';
 
 class AIController extends GetxController {
@@ -25,19 +26,129 @@ class AIController extends GetxController {
   }
 
   Future<String?> transcribeAudio(File audioFile) async {
+    await processRecordedAudio(audioFile, appendToExisting: false);
+    return transcriptText.value;
+  }
+
+  Future<void> processRecordedAudio(
+    File audioFile, {
+    required bool appendToExisting,
+  }) async {
+    final existingTranscript =
+        appendToExisting ? transcriptText.value.trim() : '';
+    final existingSummary = appendToExisting ? generatedText.value.trim() : '';
+
+    if (!appendToExisting) {
+      transcriptText.value = '';
+      generatedText.value = '';
+    }
+
     try {
       isLoading.value = true;
-      isSummaryLoading.value = false;
-      transcriptText.value = "";
-      generatedText.value = "";
-      final transcript = await _service.transcribeAudio(audioFile);
-      transcriptText.value = transcript ?? "No transcript found";
+      isSummaryLoading.value = true;
+
+      // #region agent log
+      debugAgentLog(
+        'ai_controller.dart:processRecordedAudio',
+        'before transcribe API',
+        {
+          'appendToExisting': appendToExisting,
+          'existingTranscriptLen': existingTranscript.length,
+          'existingSummaryLen': existingSummary.length,
+          'fileExists': audioFile.existsSync(),
+          'fileBytes': audioFile.existsSync() ? audioFile.lengthSync() : 0,
+        },
+        hypothesisId: 'B,C',
+      );
+      // #endregion
+
+      final newTranscriptRaw = await _service.transcribeAudio(audioFile);
+      final newTranscript = newTranscriptRaw?.trim() ?? '';
+
+      // #region agent log
+      debugAgentLog(
+        'ai_controller.dart:processRecordedAudio',
+        'after transcribe API',
+        {
+          'rawLen': newTranscriptRaw?.length ?? 0,
+          'newTranscriptLen': newTranscript.length,
+          'startsWithError': newTranscript.startsWith('Error:'),
+          'isEmpty': newTranscript.isEmpty,
+        },
+        hypothesisId: 'C',
+      );
+      // #endregion
+
+      if (newTranscript.isEmpty || newTranscript == 'No transcript found') {
+        if (!appendToExisting) {
+          transcriptText.value = newTranscriptRaw ?? 'No transcript found';
+        }
+        return;
+      }
+
+      if (newTranscript.startsWith('Error:')) {
+        if (!appendToExisting) {
+          transcriptText.value = newTranscript;
+        }
+        return;
+      }
+
+      final combinedTranscript =
+          appendToExisting && existingTranscript.isNotEmpty
+              ? '$existingTranscript\n\n$newTranscript'
+              : newTranscript;
+      transcriptText.value = combinedTranscript;
+
       isLoading.value = false;
-      await getSummary();
-      return transcript ?? "No transcript found";
+
+      final textForSummary =
+          appendToExisting ? newTranscript : combinedTranscript;
+      final summaryResult =
+          await _service.summariseText(textForSummary.trim());
+      final newSummary = (summaryResult ?? '').trim();
+
+      if (newSummary.isEmpty || newSummary == 'Error generating text') {
+        if (!appendToExisting) {
+          generatedText.value =
+              'Summary could not be generated. Add OPENAI_API_KEY on the Render server.';
+        }
+      } else if (appendToExisting && existingSummary.isNotEmpty) {
+        generatedText.value = '$existingSummary\n\n$newSummary';
+      } else {
+        generatedText.value = newSummary;
+      }
+
+      await _persistSummaryToDb();
+
+      // #region agent log
+      debugAgentLog(
+        'ai_controller.dart:processRecordedAudio',
+        'processRecordedAudio success',
+        {
+          'combinedTranscriptLen': combinedTranscript.length,
+          'generatedTextLen': generatedText.value.length,
+        },
+        hypothesisId: 'C',
+      );
+      // #endregion
     } catch (e) {
-      transcriptText.value = "Error: $e";
-      return "Error: $e";
+      // #region agent log
+      debugAgentLog(
+        'ai_controller.dart:processRecordedAudio',
+        'processRecordedAudio error',
+        {'error': e.toString()},
+        hypothesisId: 'C',
+      );
+      // #endregion
+      if (!appendToExisting) {
+        transcriptText.value = 'Error: $e';
+      } else {
+        Get.snackbar(
+          'Transcription failed',
+          'Could not transcribe the new recording.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
     } finally {
       isLoading.value = false;
       isSummaryLoading.value = false;

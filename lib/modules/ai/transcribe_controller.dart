@@ -1,13 +1,22 @@
+import 'dart:io';
+
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/helpers/api_helper.dart';
 import '../../data/models/transcribe_model.dart';
 
+enum RecordingSessionMode { newNote, continueNote }
+
 class TranscribeController extends GetxController {
+  static const _audioPathKeyPrefix = 'note_audio_path_';
+
   final _supabase = Supabase.instance.client;
   final thisNoteId = 0.obs;
   final recordingDurationSeconds = 0.obs;
   final currentAudioPath = ''.obs;
+  final recordingSessionMode = RecordingSessionMode.newNote.obs;
+  final shouldReplaceNotePageOnFinish = false.obs;
 
   RxList<TranscribeModel> allUsersTranscribe = <TranscribeModel>[].obs;
 
@@ -21,6 +30,79 @@ class TranscribeController extends GetxController {
   }
 
   List<String> get currentTags => currentNote?.tags ?? [];
+
+  bool get isManualNote {
+    final note = currentNote;
+    if (note == null) return true;
+    return note.durationSeconds == 0;
+  }
+
+  bool get hasDownloadableAudio {
+    final path = currentAudioPath.value;
+    return path.isNotEmpty && File(path).existsSync();
+  }
+
+  bool get canDownloadAudio => !isManualNote && hasDownloadableAudio;
+
+  bool get isContinuingRecording =>
+      recordingSessionMode.value == RecordingSessionMode.continueNote;
+
+  void prepareNewRecordingSession({bool replaceCurrentNotePage = false}) {
+    recordingSessionMode.value = RecordingSessionMode.newNote;
+    shouldReplaceNotePageOnFinish.value = replaceCurrentNotePage;
+  }
+
+  void prepareContinueRecordingSession() {
+    recordingSessionMode.value = thisNoteId.value == 0
+        ? RecordingSessionMode.newNote
+        : RecordingSessionMode.continueNote;
+    shouldReplaceNotePageOnFinish.value = false;
+  }
+
+  String _audioPathKey(int noteId) => '$_audioPathKeyPrefix$noteId';
+
+  Future<void> persistAudioPath(int noteId, String path) async {
+    if (noteId == 0 || path.isEmpty) return;
+
+    final prefs = Get.find<SharedPreferences>();
+    await prefs.setString(_audioPathKey(noteId), path);
+    currentAudioPath.value = path;
+  }
+
+  Future<void> restoreAudioPathForCurrentNote() async {
+    final noteId = thisNoteId.value;
+    if (noteId == 0) {
+      currentAudioPath.value = '';
+      return;
+    }
+
+    if (isManualNote) {
+      currentAudioPath.value = '';
+      return;
+    }
+
+    if (hasDownloadableAudio) return;
+
+    final prefs = Get.find<SharedPreferences>();
+    final stored = prefs.getString(_audioPathKey(noteId)) ?? '';
+    currentAudioPath.value =
+        stored.isNotEmpty && File(stored).existsSync() ? stored : '';
+  }
+
+  Future<void> clearStoredAudioPath(int noteId) async {
+    if (noteId == 0) return;
+
+    final prefs = Get.find<SharedPreferences>();
+    final stored = prefs.getString(_audioPathKey(noteId));
+    await prefs.remove(_audioPathKey(noteId));
+
+    if (stored != null && stored.isNotEmpty) {
+      final file = File(stored);
+      if (file.existsSync()) {
+        await file.delete();
+      }
+    }
+  }
 
   /// ✅ Fetch all user transcriptions
   Future<void> fetchAllUsersTranscribes() async {
@@ -304,6 +386,8 @@ class TranscribeController extends GetxController {
     logger.i("🗑 deleteTranscribe -> id: $id");
 
     try {
+      await clearStoredAudioPath(id);
+
       final res = await _supabase.from('transcribe').delete().eq('id', id);
 
       logger.i("✅ deleteTranscribe Response: $res");

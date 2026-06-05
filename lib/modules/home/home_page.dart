@@ -192,6 +192,9 @@ class _HomePageState extends State<HomePage> {
                             transcribeController.thisNoteId.value = note.id;
                             transcribeController.recordingDurationSeconds.value =
                                 note.durationSeconds;
+                            if (note.durationSeconds == 0) {
+                              transcribeController.currentAudioPath.value = '';
+                            }
                             final title = note.title?.trim();
                             aiController.headingText.value =
                                 (title != null && title.isNotEmpty)
@@ -313,6 +316,7 @@ class BottomFloatingButtons extends StatelessWidget {
           ),
           InkWell(
             onTap: () {
+              Get.find<TranscribeController>().prepareNewRecordingSession();
               Get.toNamed(AppRoutes.recordPage);
             },
             child: Image.asset(AppAssets.mic),

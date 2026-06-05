@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
+import 'package:svar_ai/core/helpers/debug_agent_log.dart';
 import 'package:svar_ai/modules/ai/transcribe_controller.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
@@ -90,42 +91,157 @@ class _RecordPageState extends State<RecordPage> {
 
     if (path != null) {
       recordedFilePath = path;
-      transcribeController.recordingDurationSeconds.value = seconds.value;
       transcribeController.currentAudioPath.value = path;
+      final isContinue = transcribeController.isContinuingRecording;
+      final newRecordingSeconds = seconds.value;
+      final audioFile = File(path);
+      // #region agent log
+      debugAgentLog(
+        'record_page.dart:stopRecording',
+        'stop recording',
+        {
+          'path': path,
+          'isContinue': isContinue,
+          'noteId': transcribeController.thisNoteId.value,
+          'sessionMode': transcribeController.recordingSessionMode.value.name,
+          'fileExists': audioFile.existsSync(),
+          'fileBytes': audioFile.existsSync() ? audioFile.lengthSync() : 0,
+          'recordingSeconds': newRecordingSeconds,
+        },
+        hypothesisId: 'A,D,F',
+      );
+      // #endregion
+
       Get.back();
-      await addNewTranscribe(path);
-      Get.toNamed(AppRoutes.recordingNotePage);
+      await processRecording(path, newRecordingSeconds);
+
+      // #region agent log
+      debugAgentLog(
+        'record_page.dart:stopRecording',
+        'after processRecording',
+        {
+          'isContinue': isContinue,
+          'noteId': transcribeController.thisNoteId.value,
+          'transcriptLen': aiController.transcriptText.value.length,
+          'summaryLen': aiController.generatedText.value.length,
+          'replaceNotePage':
+              transcribeController.shouldReplaceNotePageOnFinish.value,
+        },
+        hypothesisId: 'E,F',
+      );
+      // #endregion
+
+      if (!isContinue) {
+        if (transcribeController.shouldReplaceNotePageOnFinish.value) {
+          // #region agent log
+          debugAgentLog(
+            'record_page.dart:stopRecording',
+            'nav offNamed recordingNotePage',
+            {},
+            hypothesisId: 'E',
+          );
+          // #endregion
+          Get.offNamed(AppRoutes.recordingNotePage);
+        } else {
+          // #region agent log
+          debugAgentLog(
+            'record_page.dart:stopRecording',
+            'nav toNamed recordingNotePage',
+            {},
+            hypothesisId: 'E',
+          );
+          // #endregion
+          Get.toNamed(AppRoutes.recordingNotePage);
+        }
+      }
     } else {
       Get.snackbar("Error", "Failed to save recording");
     }
 
     seconds.value = 0;
     timeDisplay.value = "00:00:00";
+    transcribeController.prepareNewRecordingSession();
   }
 
-  Future<void> addNewTranscribe(String path) async {
-    aiController.isLoading.value = true;
-    aiController.transcriptText.value = '';
-    // 1️⃣ Insert row first → get row ID
-    final int? newId = await transcribeController.addNewTranscribe();
-    if (newId == null) {
-      Get.snackbar(
-        'Save failed',
-        'Could not create note. Sign out, sign in again, then retry.',
+  Future<void> processRecording(String path, int newRecordingSeconds) async {
+    final isContinue = transcribeController.isContinuingRecording;
+    final existingNoteId = transcribeController.thisNoteId.value;
+
+    // #region agent log
+    debugAgentLog(
+      'record_page.dart:processRecording',
+      'processRecording start',
+      {
+        'isContinue': isContinue,
+        'existingNoteId': existingNoteId,
+        'sessionMode': transcribeController.recordingSessionMode.value.name,
+      },
+      hypothesisId: 'A',
+    );
+    // #endregion
+
+    int targetNoteId;
+    if (isContinue && existingNoteId != 0) {
+      targetNoteId = existingNoteId;
+      final totalDuration =
+          transcribeController.recordingDurationSeconds.value +
+          newRecordingSeconds;
+      transcribeController.recordingDurationSeconds.value = totalDuration;
+      await transcribeController.updateDurationSeconds(
+        targetNoteId,
+        totalDuration,
       );
-      return;
+    } else {
+      transcribeController.recordingDurationSeconds.value = newRecordingSeconds;
+      aiController.headingText.value = 'Untitled Note';
+
+      final newId = await transcribeController.addNewTranscribe();
+      if (newId == null) {
+        // #region agent log
+        debugAgentLog(
+          'record_page.dart:processRecording',
+          'addNewTranscribe failed',
+          {},
+          hypothesisId: 'D',
+        );
+        // #endregion
+        Get.snackbar(
+          'Save failed',
+          'Could not create note. Sign out, sign in again, then retry.',
+        );
+        return;
+      }
+      targetNoteId = newId;
     }
 
-    // 2️⃣ Send audio to AI → get transcribed text
-    final transcribeText = await aiController.transcribeAudio(File(path));
+    await transcribeController.persistAudioPath(targetNoteId, path);
 
-    // 3️⃣ Update that row (any non-error transcript)
-    final text = transcribeText?.trim() ?? '';
-    final canUpdate =
-        text.isNotEmpty && !text.startsWith('Error:') && text != 'No transcript found';
+    await aiController.processRecordedAudio(
+      File(path),
+      appendToExisting: isContinue && existingNoteId != 0,
+    );
+
+    final transcript = aiController.transcriptText.value.trim();
+    final canUpdate = transcript.isNotEmpty &&
+        !transcript.startsWith('Error:') &&
+        transcript != 'No transcript found';
     if (canUpdate) {
-      await transcribeController.updateTranscribeText(newId, text);
+      await transcribeController.updateTranscribeText(targetNoteId, transcript);
     }
+
+    // #region agent log
+    debugAgentLog(
+      'record_page.dart:processRecording',
+      'processRecording done',
+      {
+        'targetNoteId': targetNoteId,
+        'canUpdate': canUpdate,
+        'transcriptLen': transcript.length,
+        'summaryLen': aiController.generatedText.value.length,
+      },
+      hypothesisId: 'C,D',
+    );
+    // #endregion
   }
 
   @override
@@ -170,6 +286,7 @@ class _RecordPageState extends State<RecordPage> {
                 children: [
                   _buildIconButton(Icons.close_rounded, AppColors.primary, () {
                     Get.back();
+                    transcribeController.prepareNewRecordingSession();
                   }),
                   _buildIconButton(
                     Icons.stop_rounded,
@@ -209,9 +326,6 @@ class _RecordPageState extends State<RecordPage> {
       AppColors.cardGrey,
       AppColors.cardGrey,
       AppColors.cardGrey,
-      // AppColors.primary.withValues(alpha: 0.8),
-      // AppColors.primary.withValues(alpha: 0.6),
-      // AppColors.primary.withValues(alpha: 0.4),
     ];
 
     return Obx(
