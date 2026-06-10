@@ -203,9 +203,8 @@ class _HomePageState extends State<HomePage> {
                             aiController.transcriptText.value =
                                 note.transcribeText ?? '';
                             final savedSummary = note.summaryText?.trim();
-                            if (savedSummary != null && savedSummary.isNotEmpty) {
-                              aiController.generatedText.value = savedSummary;
-                            } else {
+                            aiController.generatedText.value = savedSummary ?? '';
+                            if (savedSummary == null || savedSummary.isEmpty) {
                               aiController.getSummary();
                             }
                             Get.toNamed(AppRoutes.recordingNotePage);

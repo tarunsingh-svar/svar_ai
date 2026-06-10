@@ -19,7 +19,6 @@ class AIController extends GetxController {
   // ===============================
 
   Future<void> getSummary({String? text}) async {
-    headingText.value = "Summary";
     await _generateContent(
       () => _service.summariseText(text ?? transcriptText.value.trim()),
     );
@@ -160,21 +159,18 @@ class AIController extends GetxController {
   // ===============================
 
   Future<void> generateQuickList({String? text}) async {
-    headingText.value = "Quick List";
     await _generateContent(
       () => _service.createQuickList(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateMeetingNotes({String? text}) async {
-    headingText.value = "Meeting Notes";
     await _generateContent(
       () => _service.createMeetingNotes(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateTodoList({String? text}) async {
-    headingText.value = "To-Do List";
     await _generateContent(
       () => _service.createTodoList(text ?? transcriptText.value),
     );
@@ -185,28 +181,24 @@ class AIController extends GetxController {
   // ===============================
 
   Future<void> generateDailyStandup({String? text}) async {
-    headingText.value = "Daily Standup";
     await _generateContent(
       () => _service.createDailyStandup(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateFeatureDiscussion({String? text}) async {
-    headingText.value = "Feature Discussion";
     await _generateContent(
       () => _service.createFeatureDiscussion(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateInterviewSummary({String? text}) async {
-    headingText.value = "Interview Summary";
     await _generateContent(
       () => _service.createInterviewSummary(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateDelegationNote({String? text}) async {
-    headingText.value = "Delegation Note";
     await _generateContent(
       () => _service.createDelegationNote(text ?? transcriptText.value),
     );
@@ -217,14 +209,12 @@ class AIController extends GetxController {
   // ===============================
 
   Future<void> generateEmailCasual({String? text}) async {
-    headingText.value = "Casual Email";
     await _generateContent(
       () => _service.createEmailCasual(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateEmailFormal({String? text}) async {
-    headingText.value = "Formal Email";
     await _generateContent(
       () => _service.createEmailFormal(text ?? transcriptText.value),
     );
@@ -235,42 +225,36 @@ class AIController extends GetxController {
   // ===============================
 
   Future<void> generateXPost({String? text}) async {
-    headingText.value = "X Post";
     await _generateContent(
       () => _service.createXPost(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateXThread({String? text}) async {
-    headingText.value = "X Thread";
     await _generateContent(
       () => _service.createXThread(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateFacebookPost({String? text}) async {
-    headingText.value = "Facebook Post";
     await _generateContent(
       () => _service.createFacebookPost(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateLinkedInPost({String? text}) async {
-    headingText.value = "LinkedIn Post";
     await _generateContent(
       () => _service.createLinkedInPost(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateShortVideoScript({String? text}) async {
-    headingText.value = "Short Video Script";
     await _generateContent(
       () => _service.createShortVideoScript(text ?? transcriptText.value),
     );
   }
 
   Future<void> generateContentOutline({String? text}) async {
-    headingText.value = "Content Outline";
     await _generateContent(
       () => _service.createContentOutline(text ?? transcriptText.value),
     );
@@ -281,7 +265,6 @@ class AIController extends GetxController {
   // ===============================
 
   Future<void> generateLectureSummary({String? text}) async {
-    headingText.value = "Lecture Summary";
     await _generateContent(
       () => _service.createLectureSummary(text ?? transcriptText.value),
     );
@@ -292,7 +275,6 @@ class AIController extends GetxController {
   // ===============================
 
   Future<void> generateJournal({String? text}) async {
-    headingText.value = "Journal";
     await _generateContent(
       () => _service.createJournal(text ?? transcriptText.value),
     );
@@ -302,17 +284,31 @@ class AIController extends GetxController {
   // ✅ Internal
   // ===============================
 
-  Future<void> _persistSummaryToDb() async {
-    final id = Get.find<TranscribeController>().thisNoteId.value;
+  Future<void> _persistSummaryToDb({int? forNoteId}) async {
+    final id = forNoteId ?? Get.find<TranscribeController>().thisNoteId.value;
+    final currentId = Get.find<TranscribeController>().thisNoteId.value;
     if (id == 0 || generatedText.value.isEmpty) return;
+    if (forNoteId != null && forNoteId != currentId) return;
     await Get.find<TranscribeController>()
         .updateSummaryText(id, generatedText.value);
   }
 
   Future<void> _generateContent(Future<String?> Function() call) async {
+    final tc = Get.find<TranscribeController>();
+    final startNoteId = tc.thisNoteId.value;
     try {
       isSummaryLoading.value = true;
       final result = await call();
+      final endNoteId = tc.thisNoteId.value;
+      if (startNoteId != endNoteId) {
+        final text = result ?? '';
+        if (text.isNotEmpty &&
+            text != 'No content generated' &&
+            text != 'Error generating text') {
+          await tc.updateSummaryText(startNoteId, text);
+        }
+        return;
+      }
       final text = result ?? "No content generated";
       if (text == "Error generating text") {
         generatedText.value =
@@ -320,9 +316,11 @@ class AIController extends GetxController {
       } else {
         generatedText.value = text;
       }
-      await _persistSummaryToDb();
+      await _persistSummaryToDb(forNoteId: startNoteId);
     } catch (e) {
-      generatedText.value = "Error: $e";
+      if (startNoteId == tc.thisNoteId.value) {
+        generatedText.value = "Error: $e";
+      }
     } finally {
       isSummaryLoading.value = false;
     }

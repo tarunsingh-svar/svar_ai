@@ -9,7 +9,6 @@ import 'package:svar_ai/modules/note/note_pages.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/helpers/note_formatters.dart';
-import '../../../core/helpers/debug_agent_log.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../widgets/white_card.dart';
 import '../../widgets/editable_text_widget.dart';
@@ -70,29 +69,12 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
     aiController.headingText.value =
         (title != null && title.isNotEmpty) ? title : 'Untitled Note';
     final savedSummary = note.summaryText?.trim();
-    if (savedSummary != null && savedSummary.isNotEmpty) {
-      aiController.generatedText.value = savedSummary;
-    }
+    aiController.generatedText.value = savedSummary ?? '';
+    aiController.transcriptText.value = note.transcribeText ?? '';
     if (note.durationSeconds > 0) {
       transcribeController.recordingDurationSeconds.value =
           note.durationSeconds;
     }
-
-    // #region agent log
-    debugAgentLog(
-      'recording_note_page.dart:_syncNoteHeaderFromDb',
-      'sync note header from db',
-      {
-        'noteId': note.id,
-        'dbTranscriptLen': (note.transcribeText ?? '').length,
-        'dbSummaryLen': (note.summaryText ?? '').length,
-        'aiTranscriptLen': aiController.transcriptText.value.length,
-        'aiSummaryLen': aiController.generatedText.value.length,
-        'overwroteSummary': savedSummary != null && savedSummary.isNotEmpty,
-      },
-      hypothesisId: 'E',
-    );
-    // #endregion
   }
 
   Future<void> _showAddTagDialog() async {
