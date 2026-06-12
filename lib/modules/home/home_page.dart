@@ -5,6 +5,8 @@ import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
 import 'package:svar_ai/modules/ai/ai_controller.dart';
 import 'package:svar_ai/modules/ai/transcribe_controller.dart';
+import 'package:svar_ai/modules/subscription/paywall.dart';
+import 'package:svar_ai/modules/subscription/subscription_controller.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
@@ -26,9 +28,12 @@ class _HomePageState extends State<HomePage> {
   final AIController aiController = Get.find();
 
   final isLoading = false.obs;
+  final subscriptionController = Get.find<SubscriptionController>();
+
   getData() async {
     isLoading.value = true;
     await transcribeController.fetchAllUsersTranscribes();
+    await subscriptionController.refreshNotesCreatedCount();
     homeController.syncFilterWithAvailableTags();
     isLoading.value = false;
   }
@@ -299,6 +304,17 @@ class _HomePageState extends State<HomePage> {
 class BottomFloatingButtons extends StatelessWidget {
   const BottomFloatingButtons({super.key});
 
+  /// Returns true if the user may create a note; otherwise opens the paywall.
+  bool _guardNoteCreation() {
+    final sub = Get.find<SubscriptionController>();
+    if (sub.canCreateNote) return true;
+    showPaywall(
+      reason:
+          "You've reached the free limit of 10 notes. Upgrade to Pro for unlimited notes.",
+    );
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return WhiteCard(
@@ -309,12 +325,14 @@ class BottomFloatingButtons extends StatelessWidget {
         children: [
           InkWell(
             onTap: () {
+              if (!_guardNoteCreation()) return;
               Get.toNamed(AppRoutes.createNotePage);
             },
             child: Image.asset(AppAssets.pen),
           ),
           InkWell(
             onTap: () {
+              if (!_guardNoteCreation()) return;
               Get.find<TranscribeController>().prepareNewRecordingSession();
               Get.toNamed(AppRoutes.recordPage);
             },

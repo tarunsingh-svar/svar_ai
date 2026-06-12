@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
 import 'package:svar_ai/modules/auth/login/login_controller.dart';
+import 'package:svar_ai/modules/subscription/subscription_controller.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
@@ -16,6 +17,7 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final LoginController loginController = Get.find();
+    final SubscriptionController sub = Get.find();
     return Scaffold(
       backgroundColor: AppColors.background,
       // appBar: AppBar(
@@ -47,67 +49,11 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 5.h),
-              // 🔷 Premium Card
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18.sp),
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF0172FF), // bright blue
-                      Color(0xFF014499), // deep blue
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 2.h),
-                    Text.rich(
-                      TextSpan(
-                        text: 'Try SVAR AI',
-                        style: AppTextTheme.h5.copyWith(
-                          color: Colors.white,
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: ' Pro',
-                            style: AppTextTheme.h5.copyWith(
-                              color: Colors.white,
-                              fontSize: 20.sp,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 1.5.h),
-
-                    _buildProFeature("15+ rewrite options"),
-                    _buildProFeature("Unlimited number of notes"),
-                    _buildProFeature("No limit on recording duration"),
-                    _buildProFeature("Access to SVAR AI"),
-                    SizedBox(height: 2.5.h),
-
-                    CustomButton(
-                      text: "Go Premium",
-                      onTap: () {
-                        Get.toNamed(AppRoutes.pricingPage);
-                      },
-                      borderRadius: 15.sp,
-                      backgroundColor: Colors.white,
-                      textColor: AppColors.textBlack,
-                      borderColor: Colors.transparent,
-                    ),
-                    SizedBox(height: 1.5.h),
-                  ],
-                ),
+              // 🔷 Plan card (promo for free users, status for Pro users)
+              Obx(
+                () => sub.isPro.value
+                    ? _buildProStatusCard(sub)
+                    : _buildUpgradeCard(),
               ),
               SizedBox(height: 3.h),
 
@@ -176,6 +122,143 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // 🔷 Upgrade promo card shown to free users.
+  Widget _buildUpgradeCard() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(4.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18.sp),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0172FF), Color(0xFF014499)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 2.h),
+          Text.rich(
+            TextSpan(
+              text: 'Try SVAR AI',
+              style: AppTextTheme.h5.copyWith(
+                color: Colors.white,
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w500,
+              ),
+              children: [
+                TextSpan(
+                  text: ' Pro',
+                  style: AppTextTheme.h5.copyWith(
+                    color: Colors.white,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 1.5.h),
+          _buildProFeature("All 16+ rewrite options"),
+          _buildProFeature("Unlimited number of notes"),
+          _buildProFeature("No limit on recording duration"),
+          _buildProFeature("Priority support"),
+          SizedBox(height: 2.5.h),
+          CustomButton(
+            text: "Go Premium",
+            onTap: () {
+              Get.toNamed(AppRoutes.pricingPage);
+            },
+            borderRadius: 15.sp,
+            backgroundColor: Colors.white,
+            textColor: AppColors.textBlack,
+            borderColor: Colors.transparent,
+          ),
+          SizedBox(height: 1.5.h),
+        ],
+      ),
+    );
+  }
+
+  // 🔷 Status card shown to Pro / trial / lifetime users.
+  Widget _buildProStatusCard(SubscriptionController sub) {
+    final label = sub.isLifetime.value
+        ? "Lifetime Pro"
+        : sub.isTrial.value
+            ? "Pro Trial"
+            : "SVAR AI Pro";
+    final subtitle = sub.isTrial.value && sub.trialDaysLeft.value > 0
+        ? "${sub.trialDaysLeft.value} day(s) left in your free trial"
+        : sub.isLifetime.value
+            ? "You have lifetime access. Thank you!"
+            : "Your Pro plan is active.";
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(4.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18.sp),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0172FF), Color(0xFF014499)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 1.h),
+          Row(
+            children: [
+              Icon(Icons.workspace_premium_rounded,
+                  color: Colors.white, size: 22.sp),
+              SizedBox(width: 2.w),
+              Text(
+                label,
+                style: AppTextTheme.h5.copyWith(
+                  color: Colors.white,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 1.h),
+          Text(
+            subtitle,
+            style: AppTextTheme.body2.copyWith(color: Colors.white),
+          ),
+          SizedBox(height: 2.h),
+          if (!sub.isLifetime.value)
+            CustomButton(
+              text: "Manage subscription",
+              onTap: () {
+                Get.snackbar(
+                  "Manage subscription",
+                  "Manage or cancel your plan from your device's store account settings (App Store / Google Play).",
+                  snackPosition: SnackPosition.BOTTOM,
+                  duration: const Duration(seconds: 4),
+                );
+              },
+              borderRadius: 15.sp,
+              backgroundColor: Colors.white,
+              textColor: AppColors.textBlack,
+              borderColor: Colors.transparent,
+            ),
+          SizedBox(height: 1.h),
+          TextButton(
+            onPressed: () => sub.restorePurchases(),
+            child: Text(
+              "Restore Purchases",
+              style: AppTextTheme.body3.copyWith(color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }

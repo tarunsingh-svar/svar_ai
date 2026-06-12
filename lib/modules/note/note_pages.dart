@@ -17,6 +17,8 @@ import '../../../core/theme/text_styles.dart';
 import '../../../widgets/white_card.dart';
 import '../../widgets/custom_bottom_sheet.dart';
 import '../../widgets/tag_card.dart';
+import '../subscription/paywall.dart';
+import '../subscription/subscription_controller.dart';
 import '../ai/ai_controller.dart';
 import '../ai/transcribe_controller.dart';
 import 'widgets/rewrite_bottom_sheet.dart';
@@ -351,6 +353,14 @@ class BottomFloatingButtons extends StatelessWidget {
         InkWell(
           onTap: () {
             Get.back();
+            final sub = Get.find<SubscriptionController>();
+            if (!sub.canCreateNote) {
+              showPaywall(
+                reason:
+                    "You've reached the free limit of 10 notes. Upgrade to Pro for unlimited notes.",
+              );
+              return;
+            }
             transcribeController?.prepareNewRecordingSession(
               replaceCurrentNotePage: true,
             );

@@ -3,13 +3,17 @@ import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/plan_limits.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../ai/ai_controller.dart';
+import '../../subscription/paywall.dart';
+import '../../subscription/subscription_controller.dart';
 
 class RewriteBottomSheet extends StatelessWidget {
   RewriteBottomSheet({super.key});
 
   final AIController aiController = Get.find<AIController>();
+  final SubscriptionController subscriptionController = Get.find();
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +82,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.quickList,
               title: "Quick List",
               subtitle: "Converts thoughts into clean bullet points",
+              rewriteId: RewriteIds.quickList,
               onTap: () => _execute(aiController.generateQuickList),
             ),
             _divider(),
@@ -85,6 +90,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.stickyNote,
               title: "Meeting Notes",
               subtitle: "Turns discussions into clean summaries",
+              rewriteId: RewriteIds.meetingNotes,
               onTap: () => _execute(aiController.generateMeetingNotes),
             ),
             _divider(),
@@ -92,6 +98,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.toDoList,
               title: "To-do List",
               subtitle: "Checklist-ready action items",
+              rewriteId: RewriteIds.todoList,
               onTap: () => _execute(aiController.generateTodoList),
             ),
             _divider(),
@@ -104,6 +111,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.dailyStandup,
               title: "Daily Standup",
               subtitle: "Classic stand-up style update",
+              rewriteId: RewriteIds.dailyStandup,
               onTap: () => _execute(aiController.generateDailyStandup),
             ),
             _divider(),
@@ -111,6 +119,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.featureDiscussion,
               title: "Feature Discussion",
               subtitle: "Structured product talk format",
+              rewriteId: RewriteIds.featureDiscussion,
               onTap: () => _execute(aiController.generateFeatureDiscussion),
             ),
             _divider(),
@@ -118,6 +127,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.interview,
               title: "User Interview Summary",
               subtitle: "Extract insights from interviews",
+              rewriteId: RewriteIds.interviewSummary,
               onTap: () => _execute(aiController.generateInterviewSummary),
             ),
             _divider(),
@@ -126,6 +136,7 @@ class RewriteBottomSheet extends StatelessWidget {
               title: "Delegation Note",
               subtitle:
                   "Assigns tasks clearly to others using Who / What / When structure.",
+              rewriteId: RewriteIds.delegationNote,
               onTap: () => _execute(aiController.generateDelegationNote),
             ),
             _divider(),
@@ -139,6 +150,7 @@ class RewriteBottomSheet extends StatelessWidget {
               title: "Email - Casual",
               subtitle:
                   "Turns notes into friendly, short emails for informal updates.",
+              rewriteId: RewriteIds.emailCasual,
               onTap: () => _execute(aiController.generateEmailCasual),
             ),
             _divider(),
@@ -146,6 +158,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.email,
               title: "Email - Formal",
               subtitle: "Converts notes into structured, professional emails.",
+              rewriteId: RewriteIds.emailFormal,
               onTap: () => _execute(aiController.generateEmailFormal),
             ),
             _divider(),
@@ -158,6 +171,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.x,
               title: "X Post",
               subtitle: "Make an engaging tweet",
+              rewriteId: RewriteIds.xPost,
               onTap: () => _execute(aiController.generateXPost),
             ),
             _divider(),
@@ -165,6 +179,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.x,
               title: "X Thread",
               subtitle: "Transform into series of tweets",
+              rewriteId: RewriteIds.xThread,
               onTap: () => _execute(aiController.generateXThread),
             ),
             _divider(),
@@ -172,6 +187,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.insta,
               title: "Short Video Script",
               subtitle: "Make an engaging attention catching script.",
+              rewriteId: RewriteIds.shortVideoScript,
               onTap: () => _execute(aiController.generateShortVideoScript),
             ),
             _divider(),
@@ -179,6 +195,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.linkedIn,
               title: "LinkedIn Posts",
               subtitle: "Make a professional post",
+              rewriteId: RewriteIds.linkedInPost,
               onTap: () => _execute(aiController.generateLinkedInPost),
             ),
             _divider(),
@@ -187,6 +204,7 @@ class RewriteBottomSheet extends StatelessWidget {
               title: "Content Outline",
               subtitle:
                   "Creates a structured outline for posts, videos, or newsletters",
+              rewriteId: RewriteIds.contentOutline,
               onTap: () => _execute(aiController.generateContentOutline),
             ),
             _divider(),
@@ -200,6 +218,7 @@ class RewriteBottomSheet extends StatelessWidget {
               title: "Lecture/Class Summary",
               subtitle:
                   "Turns notes into friendly, short emails for informal updates.",
+              rewriteId: RewriteIds.lectureSummary,
               onTap: () => _execute(aiController.generateLectureSummary),
             ),
             _divider(),
@@ -212,6 +231,7 @@ class RewriteBottomSheet extends StatelessWidget {
               iconPath: AppAssets.journal,
               title: "Daily Journal Entry",
               subtitle: "Summarizes personal reflections or thoughts.",
+              rewriteId: RewriteIds.journal,
               onTap: () => _execute(aiController.generateJournal),
             ),
 
@@ -242,39 +262,58 @@ class RewriteBottomSheet extends StatelessWidget {
     required String iconPath,
     required String title,
     required String subtitle,
+    required String rewriteId,
     required VoidCallback onTap,
   }) {
+    final allowed = subscriptionController.isRewriteAllowed(rewriteId);
     return InkWell(
-      onTap: onTap,
+      onTap: allowed
+          ? onTap
+          : () {
+              Get.back();
+              showPaywall(
+                reason:
+                    "$title is a Pro feature. Upgrade to unlock all rewrite options.",
+              );
+            },
       borderRadius: BorderRadius.circular(10.sp),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 1.5.h),
-        child: Row(
-          children: [
-            Image.asset(iconPath, width: 6.w, height: 6.w),
-            SizedBox(width: 4.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTextTheme.body1Medium.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textBlack,
+      child: Opacity(
+        opacity: allowed ? 1 : 0.6,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 1.5.h),
+          child: Row(
+            children: [
+              Image.asset(iconPath, width: 6.w, height: 6.w),
+              SizedBox(width: 4.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTextTheme.body1Medium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textBlack,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 0.3.h),
-                  Text(
-                    subtitle,
-                    style: AppTextTheme.body3.copyWith(
-                      color: AppColors.textBlack,
+                    SizedBox(height: 0.3.h),
+                    Text(
+                      subtitle,
+                      style: AppTextTheme.body3.copyWith(
+                        color: AppColors.textBlack,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              if (!allowed)
+                Icon(
+                  Icons.lock_outline_rounded,
+                  size: 18.sp,
+                  color: AppColors.grey500,
+                ),
+            ],
+          ),
         ),
       ),
     );

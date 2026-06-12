@@ -9,6 +9,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
 import 'package:svar_ai/core/helpers/debug_agent_log.dart';
 import 'package:svar_ai/modules/ai/transcribe_controller.dart';
+import 'package:svar_ai/modules/subscription/subscription_controller.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../ai/ai_controller.dart';
@@ -23,6 +24,7 @@ class RecordPage extends StatefulWidget {
 class _RecordPageState extends State<RecordPage> {
   final aiController = Get.find<AIController>();
   final TranscribeController transcribeController = Get.find();
+  final SubscriptionController subscriptionController = Get.find();
 
   late final RecorderController recorderController;
   final RxBool isRecording = false.obs;
@@ -57,6 +59,19 @@ class _RecordPageState extends State<RecordPage> {
       final m = ((seconds.value % 3600) ~/ 60).toString().padLeft(2, '0');
       final s = (seconds.value % 60).toString().padLeft(2, '0');
       timeDisplay.value = "$h:$m:$s";
+
+      // Free tier: auto-stop and save once the recording cap is hit.
+      final cap = subscriptionController.maxRecordingSeconds;
+      if (cap != null && seconds.value >= cap) {
+        timer?.cancel();
+        Get.snackbar(
+          "Recording limit reached",
+          "Free recordings are capped at 3 minutes. Upgrade to Pro for unlimited recording.",
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 4),
+        );
+        stopRecording();
+      }
     });
   }
 

@@ -8,6 +8,7 @@ import 'core/routing/app_pages.dart';
 import 'core/theme/app_theme.dart';
 import 'bindings/initial_binding.dart';
 import 'core/config/environment.dart';
+import 'core/config/revenuecat_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,10 @@ Future<void> main() async {
       authFlowType: AuthFlowType.pkce,
     ),
   );
+
+  // 💳 Initialize RevenueCat (no-op on web). Must run after Supabase so the
+  // SDK can be tied to the signed-in user id when a session already exists.
+  await RevenueCatConfig.init();
 
   runApp(const MyApp());
 }

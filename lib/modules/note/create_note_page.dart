@@ -6,6 +6,8 @@ import 'package:svar_ai/core/constants/app_colors.dart';
 import 'package:svar_ai/core/helpers/note_formatters.dart';
 import 'package:svar_ai/core/theme/text_styles.dart';
 import 'package:svar_ai/modules/ai/transcribe_controller.dart';
+import 'package:svar_ai/modules/subscription/paywall.dart';
+import 'package:svar_ai/modules/subscription/subscription_controller.dart';
 import 'package:svar_ai/widgets/tag_input_row.dart';
 import 'package:svar_ai/widgets/white_card.dart';
 
@@ -47,6 +49,14 @@ class _CreateNotePageState extends State<CreateNotePage> {
         'Nothing to save',
         'Add a title or some note content first.',
         snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    if (!Get.find<SubscriptionController>().canCreateNote) {
+      showPaywall(
+        reason:
+            "You've reached the free limit of 10 notes. Upgrade to Pro for unlimited notes.",
       );
       return;
     }

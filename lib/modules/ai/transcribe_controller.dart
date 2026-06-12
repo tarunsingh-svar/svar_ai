@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/helpers/api_helper.dart';
 import '../../data/models/transcribe_model.dart';
+import '../subscription/paywall.dart';
+import '../subscription/subscription_controller.dart';
 
 enum RecordingSessionMode { newNote, continueNote }
 
@@ -133,6 +135,27 @@ class TranscribeController extends GetxController {
     }
   }
 
+  /// Safety net: free users are capped at the lifetime note limit. The primary
+  /// gate is at the note-creation entry points (home), but this prevents
+  /// creating a note if that gate is somehow bypassed. Returns false (and opens
+  /// the paywall) when blocked.
+  bool _ensureCanCreateNote() {
+    if (!Get.isRegistered<SubscriptionController>()) return true;
+    final sub = Get.find<SubscriptionController>();
+    if (sub.canCreateNote) return true;
+    showPaywall(
+      reason:
+          "You've reached the free limit of 10 notes. Upgrade to Pro for unlimited notes.",
+    );
+    return false;
+  }
+
+  void _bumpLocalNoteCount() {
+    if (Get.isRegistered<SubscriptionController>()) {
+      Get.find<SubscriptionController>().incrementLocalNoteCount();
+    }
+  }
+
   /// ✅ Create new transcribe
   Future<int?> addNewTranscribe() async {
     final user = _supabase.auth.currentUser;
@@ -140,6 +163,8 @@ class TranscribeController extends GetxController {
       logger.i("⛔ addNewTranscribe: No user logged in");
       return null;
     }
+
+    if (!_ensureCanCreateNote()) return null;
 
     logger.i("📌 Creating new transcribe row for user: ${user.id}");
 
@@ -162,6 +187,7 @@ class TranscribeController extends GetxController {
       final newItem = TranscribeModel.fromJson(data);
       allUsersTranscribe.insert(0, newItem);
       thisNoteId.value = newItem.id;
+      _bumpLocalNoteCount();
 
       logger.i("🟢 Inserted new transcribe with ID: ${newItem.id}");
 
@@ -183,6 +209,8 @@ class TranscribeController extends GetxController {
       logger.i("⛔ addManualNote: No user logged in");
       return null;
     }
+
+    if (!_ensureCanCreateNote()) return null;
 
     final trimmedTitle =
         title.trim().isEmpty ? 'Untitled Note' : title.trim();
@@ -208,6 +236,7 @@ class TranscribeController extends GetxController {
 
       final newItem = TranscribeModel.fromJson(data);
       allUsersTranscribe.insert(0, newItem);
+      _bumpLocalNoteCount();
 
       logger.i("🟢 Inserted manual note with ID: ${newItem.id}");
 
