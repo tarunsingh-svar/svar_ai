@@ -61,12 +61,12 @@ class SettingsPage extends StatelessWidget {
               _buildSettingsTile(
                 icon: AppAssets.whatsNew,
                 title: "What's New",
-                onTap: () {},
+                onTap: () => Get.toNamed(AppRoutes.whatsNewPage),
               ),
               _buildSettingsTile(
                 icon: AppAssets.helpFeedback,
                 title: "Help & Feedback",
-                onTap: () {},
+                onTap: () => Get.toNamed(AppRoutes.helpFeedbackPage),
               ),
               _buildSettingsTile(
                 icon: AppAssets.lang,
@@ -76,17 +76,17 @@ class SettingsPage extends StatelessWidget {
               _buildSettingsTile(
                 icon: AppAssets.privacyPolicy,
                 title: "Privacy Policy",
-                onTap: () {},
+                onTap: () => Get.toNamed(AppRoutes.privacyPolicyPage),
               ),
               _buildSettingsTile(
                 icon: AppAssets.terms,
                 title: "Terms of service",
-                onTap: () {},
+                onTap: () => Get.toNamed(AppRoutes.termsOfServicePage),
               ),
               _buildSettingsTile(
                 icon: AppAssets.userId,
-                title: "User ID",
-                onTap: () {},
+                title: "User Info",
+                onTap: () => Get.toNamed(AppRoutes.userInfoPage),
               ),
 
               SizedBox(height: 3.h),

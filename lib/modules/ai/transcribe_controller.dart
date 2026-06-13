@@ -39,6 +39,8 @@ class TranscribeController extends GetxController {
     return note.durationSeconds == 0;
   }
 
+  bool get showTranscriptTab => !isManualNote;
+
   bool get hasDownloadableAudio {
     final path = currentAudioPath.value;
     return path.isNotEmpty && File(path).existsSync();
@@ -224,7 +226,7 @@ class TranscribeController extends GetxController {
           .insert({
             "user_id": user.id,
             "title": trimmedTitle,
-            "transcribe_text": trimmedBody,
+            "transcribe_text": "",
             "summary_text": trimmedBody,
             "duration_seconds": 0,
             "tags": tags,

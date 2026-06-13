@@ -53,6 +53,7 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
   }
 
   void _onTabSelected(int index) {
+    if (index == 1 && !transcribeController.showTranscriptTab) return;
     if (selectedTab.value == index) return;
     selectedTab.value = index;
     _pageController.animateToPage(
@@ -70,7 +71,9 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
         (title != null && title.isNotEmpty) ? title : 'Untitled Note';
     final savedSummary = note.summaryText?.trim();
     aiController.generatedText.value = savedSummary ?? '';
-    aiController.transcriptText.value = note.transcribeText ?? '';
+    aiController.transcriptText.value =
+        note.durationSeconds > 0 ? (note.transcribeText ?? '') : '';
+    selectedTab.value = 0;
     if (note.durationSeconds > 0) {
       transcribeController.recordingDurationSeconds.value =
           note.durationSeconds;
@@ -110,27 +113,39 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
               SizedBox(height: 3.h),
 
               // Tabs
-              Row(
-                children: [
-                  _buildTab("Structured Notes", 0),
-                  _buildTab("Transcript", 1),
-                ],
-              ),
+              Obx(() {
+                final showTranscript = transcribeController.showTranscriptTab;
+                return Row(
+                  children: [
+                    _buildTab("Structured Notes", 0),
+                    if (showTranscript) _buildTab("Transcript", 1),
+                  ],
+                );
+              }),
 
               // ✅ Swipeable tab content
               Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  onPageChanged: (index) => selectedTab.value = index,
-                  children: [
-                    SingleChildScrollView(
+                child: Obx(() {
+                  final showTranscript = transcribeController.showTranscriptTab;
+                  if (!showTranscript) {
+                    return SingleChildScrollView(
                       child: Obx(_buildStructuredNotesTab),
-                    ),
-                    SingleChildScrollView(
-                      child: Obx(_buildTranscriptTab),
-                    ),
-                  ],
-                ),
+                    );
+                  }
+
+                  return PageView(
+                    controller: _pageController,
+                    onPageChanged: (index) => selectedTab.value = index,
+                    children: [
+                      SingleChildScrollView(
+                        child: Obx(_buildStructuredNotesTab),
+                      ),
+                      SingleChildScrollView(
+                        child: Obx(_buildTranscriptTab),
+                      ),
+                    ],
+                  );
+                }),
               ),
             ],
           ),

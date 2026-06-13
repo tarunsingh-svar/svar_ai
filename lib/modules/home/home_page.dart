@@ -11,6 +11,7 @@ import 'package:svar_ai/modules/subscription/subscription_controller.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
+import '../../../data/models/transcribe_model.dart';
 import '../../../widgets/white_card.dart';
 import 'home_controller.dart';
 import 'widgets/search_bar.dart';
@@ -44,6 +45,22 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await getData();
     });
+  }
+
+  String _notePreviewText(TranscribeModel note) {
+    if (note.durationSeconds > 0) {
+      final transcript = note.transcribeText?.trim();
+      if (transcript != null && transcript.isNotEmpty) {
+        return transcript;
+      }
+      return 'Processing...';
+    }
+
+    final summary = note.summaryText?.trim();
+    if (summary != null && summary.isNotEmpty) {
+      return summary;
+    }
+    return 'Untitled Note';
   }
 
   @override
@@ -206,10 +223,13 @@ class _HomePageState extends State<HomePage> {
                                     ? title
                                     : 'Untitled Note';
                             aiController.transcriptText.value =
-                                note.transcribeText ?? '';
+                                note.durationSeconds > 0
+                                    ? (note.transcribeText ?? '')
+                                    : '';
                             final savedSummary = note.summaryText?.trim();
                             aiController.generatedText.value = savedSummary ?? '';
-                            if (savedSummary == null || savedSummary.isEmpty) {
+                            if ((savedSummary == null || savedSummary.isEmpty) &&
+                                note.durationSeconds > 0) {
                               aiController.getSummary();
                             }
                             Get.toNamed(AppRoutes.recordingNotePage);
@@ -242,10 +262,7 @@ class _HomePageState extends State<HomePage> {
                                         ),
                                         SizedBox(height: 1.h),
                                         Text(
-                                          note.transcribeText?.isNotEmpty ==
-                                                  true
-                                              ? note.transcribeText!
-                                              : "Processing...",
+                                          _notePreviewText(note),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: AppTextTheme.homeCardBody,

@@ -12,7 +12,12 @@ import '../../modules/note/create_note_page.dart';
 import '../../modules/note/recording_note_page.dart';
 import '../../modules/pricing/princing_page.dart';
 import '../../modules/record/record_page.dart';
+import '../../modules/settings/help_feedback_page.dart';
+import '../../modules/settings/whats_new_page.dart';
+import '../../modules/settings/legal_document_page.dart';
 import '../../modules/settings/settings_page.dart';
+import '../../modules/settings/user_info_page.dart';
+import '../../core/constants/legal_content.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -31,6 +36,29 @@ class AppPages {
     GetPage(name: AppRoutes.recordingNotePage, page: () => RecordingNotePage()),
     GetPage(name: AppRoutes.createNotePage, page: () => CreateNotePage()),
     GetPage(name: AppRoutes.settingsPage, page: () => SettingsPage()),
+    GetPage(name: AppRoutes.userInfoPage, page: () => const UserInfoPage()),
+    GetPage(
+      name: AppRoutes.privacyPolicyPage,
+      page: () => const LegalDocumentPage(
+        title: LegalContent.privacyPolicyTitle,
+        sections: LegalContent.privacyPolicySections,
+      ),
+    ),
+    GetPage(
+      name: AppRoutes.termsOfServicePage,
+      page: () => const LegalDocumentPage(
+        title: LegalContent.termsOfServiceTitle,
+        sections: LegalContent.termsOfServiceSections,
+      ),
+    ),
+    GetPage(
+      name: AppRoutes.helpFeedbackPage,
+      page: () => const HelpFeedbackPage(),
+    ),
+    GetPage(
+      name: AppRoutes.whatsNewPage,
+      page: () => const WhatsNewPage(),
+    ),
     GetPage(name: AppRoutes.pricingPage, page: () => PricingPage()),
     GetPage(name: AppRoutes.recordPage, page: () => RecordPage()),
   ];

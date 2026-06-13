@@ -11,7 +11,7 @@ void debugAgentLog(
   String runId = 'pre-fix',
 }) {
   final payload = jsonEncode({
-    'sessionId': 'e91091',
+    'sessionId': '5ebe87',
     'timestamp': DateTime.now().millisecondsSinceEpoch,
     'location': location,
     'message': message,
@@ -20,7 +20,8 @@ void debugAgentLog(
     'runId': runId,
   });
   try {
-    File('/Users/tarunsingh/svar_rework/.cursor/debug-e91091.log').writeAsStringSync(
+    File('/Users/tarunsingh/svar_rework/.cursor/debug-5ebe87.log')
+        .writeAsStringSync(
       '$payload\n',
       mode: FileMode.append,
     );
@@ -36,7 +37,7 @@ Future<void> _postDebugLog(String payload) async {
       'http://127.0.0.1:7869/ingest/5bb2bbb2-3f4c-45b3-8d61-cfcc30071a75',
     ));
     req.headers.set('Content-Type', 'application/json');
-    req.headers.set('X-Debug-Session-Id', 'e91091');
+    req.headers.set('X-Debug-Session-Id', '5ebe87');
     req.write(payload);
     await req.close();
     client.close();
