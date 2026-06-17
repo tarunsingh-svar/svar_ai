@@ -71,10 +71,12 @@ class AIController extends GetxController {
         {
           'rawLen': newTranscriptRaw?.length ?? 0,
           'newTranscriptLen': newTranscript.length,
+          'wordCount': newTranscript.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length,
           'startsWithError': newTranscript.startsWith('Error:'),
           'isEmpty': newTranscript.isEmpty,
         },
         hypothesisId: 'C',
+        runId: 'post-fix',
       );
       // #endregion
 

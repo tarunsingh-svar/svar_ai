@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import '../constants/env.dart';
+import 'debug_agent_log.dart';
 
 final Logger logger = Logger(
   printer: PrettyPrinter(
@@ -57,6 +58,24 @@ class ApiHelper {
           final start = req.extra['startTime'] as DateTime?;
           final dur = start != null ? DateTime.now().difference(start) : null;
 
+          // #region agent log
+          if (req.path.contains('transcribe') ||
+              req.path.contains('summarize')) {
+            debugAgentLog(
+              'api_helper.dart:onError',
+              'AI API error',
+              {
+                'path': req.path,
+                'status': e.response?.statusCode,
+                'durationMs': dur?.inMilliseconds,
+                'errorType': e.type.name,
+                'message': e.message,
+              },
+              hypothesisId: 'C,E',
+            );
+          }
+          // #endregion
+
           logger.e(
             '❌ ERROR\n '
             'URL: ${req.baseUrl}${req.path}\n'
@@ -110,9 +129,16 @@ class ApiHelper {
     Map<String, dynamic>? query,
     dynamic data, // ✅ Accepts FormData too
     String method = 'GET',
+    Duration? receiveTimeout,
   }) async {
     try {
       Response response;
+      final options = receiveTimeout == null
+          ? null
+          : Options(
+              sendTimeout: receiveTimeout,
+              receiveTimeout: receiveTimeout,
+            );
 
       switch (method.toUpperCase()) {
         case 'POST':
@@ -120,6 +146,7 @@ class ApiHelper {
             endpoint,
             data: data,
             queryParameters: query,
+            options: options,
           );
           break;
         case 'PUT':
@@ -127,6 +154,7 @@ class ApiHelper {
             endpoint,
             data: data,
             queryParameters: query,
+            options: options,
           );
           break;
         case 'DELETE':
@@ -134,10 +162,15 @@ class ApiHelper {
             endpoint,
             data: data,
             queryParameters: query,
+            options: options,
           );
           break;
         default:
-          response = await _dio.get(endpoint, queryParameters: query);
+          response = await _dio.get(
+            endpoint,
+            queryParameters: query,
+            options: options,
+          );
       }
 
       return response;

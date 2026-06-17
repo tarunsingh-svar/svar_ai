@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
 import 'package:svar_ai/core/helpers/debug_agent_log.dart';
+import 'package:svar_ai/core/helpers/recording_foreground.dart';
 import 'package:svar_ai/modules/ai/transcribe_controller.dart';
 import 'package:svar_ai/modules/subscription/subscription_controller.dart';
 import '../../../core/constants/app_colors.dart';
@@ -21,7 +22,7 @@ class RecordPage extends StatefulWidget {
   State<RecordPage> createState() => _RecordPageState();
 }
 
-class _RecordPageState extends State<RecordPage> {
+class _RecordPageState extends State<RecordPage> with WidgetsBindingObserver {
   final aiController = Get.find<AIController>();
   final TranscribeController transcribeController = Get.find();
   final SubscriptionController subscriptionController = Get.find();
@@ -31,11 +32,17 @@ class _RecordPageState extends State<RecordPage> {
   final RxInt seconds = 0.obs;
   final RxString timeDisplay = "00:00:00".obs;
   Timer? timer;
+  StreamSubscription<Duration>? _durationSub;
   String? recordedFilePath;
+  AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
+  DateTime? _backgroundStartedAt;
+  int _totalBackgroundMs = 0;
+  final RxBool _stopInProgress = false.obs;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     recorderController = RecorderController()
       ..androidEncoder = AndroidEncoder.aac
@@ -46,24 +53,56 @@ class _RecordPageState extends State<RecordPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => startRecording());
   }
 
-  Future<String> _getPath() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return "${dir.path}/record_${DateTime.now().millisecondsSinceEpoch}.m4a";
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.inactive) {
+      _backgroundStartedAt ??= DateTime.now();
+    } else if (state == AppLifecycleState.resumed &&
+        _backgroundStartedAt != null) {
+      _totalBackgroundMs +=
+          DateTime.now().difference(_backgroundStartedAt!).inMilliseconds;
+      _backgroundStartedAt = null;
+    }
+
+    _lifecycleState = state;
+    // #region agent log
+    debugAgentLog(
+      'record_page.dart:didChangeAppLifecycleState',
+      'lifecycle changed',
+      {
+        'state': state.name,
+        'isRecording': isRecording.value,
+        'seconds': seconds.value,
+        'recorderRecording': recorderController.isRecording,
+        'recorderElapsedMs': recorderController.elapsedDuration.inMilliseconds,
+        'totalBackgroundMs': _totalBackgroundMs,
+      },
+      hypothesisId: 'A,B,E',
+      runId: 'post-fix',
+    );
+    // #endregion
   }
 
-  void _startTimer() {
-    timer?.cancel();
-    timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      seconds.value++;
-      final h = (seconds.value ~/ 3600).toString().padLeft(2, '0');
-      final m = ((seconds.value % 3600) ~/ 60).toString().padLeft(2, '0');
-      final s = (seconds.value % 60).toString().padLeft(2, '0');
-      timeDisplay.value = "$h:$m:$s";
+  void _updateTimeDisplay(int totalSeconds) {
+    final h = (totalSeconds ~/ 3600).toString().padLeft(2, '0');
+    final m = ((totalSeconds % 3600) ~/ 60).toString().padLeft(2, '0');
+    final s = (totalSeconds % 60).toString().padLeft(2, '0');
+    timeDisplay.value = "$h:$m:$s";
+  }
 
-      // Free tier: auto-stop and save once the recording cap is hit.
+  void _startDurationListener() {
+    _durationSub?.cancel();
+    _durationSub = recorderController.onCurrentDuration.listen((duration) {
+      if (!isRecording.value) return;
+
+      final totalSeconds = duration.inSeconds;
+      seconds.value = totalSeconds;
+      _updateTimeDisplay(totalSeconds);
+
       final cap = subscriptionController.maxRecordingSeconds;
-      if (cap != null && seconds.value >= cap) {
-        timer?.cancel();
+      if (cap != null && totalSeconds >= cap) {
         Get.snackbar(
           "Recording limit reached",
           "Free recordings are capped at 3 minutes. Upgrade to Pro for unlimited recording.",
@@ -75,10 +114,27 @@ class _RecordPageState extends State<RecordPage> {
     });
   }
 
+  void _stopDurationListener() {
+    _durationSub?.cancel();
+    _durationSub = null;
+  }
+
+  Future<String> _getPath() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return "${dir.path}/record_${DateTime.now().millisecondsSinceEpoch}.m4a";
+  }
+
+  void _startTimer() {
+    _startDurationListener();
+  }
+
   Future<void> startRecording() async {
     if (await recorderController.checkPermission()) {
       final path = await _getPath();
       recordedFilePath = path;
+      _totalBackgroundMs = 0;
+      _backgroundStartedAt = null;
+      await RecordingForeground.start();
       await recorderController.record(path: path);
       isRecording.value = true;
       _startTimer();
@@ -90,7 +146,7 @@ class _RecordPageState extends State<RecordPage> {
   Future<void> pauseRecording() async {
     await recorderController.pause();
     isRecording.value = false;
-    timer?.cancel();
+    _stopDurationListener();
   }
 
   Future<void> resumeRecording() async {
@@ -100,15 +156,69 @@ class _RecordPageState extends State<RecordPage> {
   }
 
   Future<void> stopRecording() async {
-    final path = await recorderController.stop();
-    timer?.cancel();
-    isRecording.value = false;
+    if (_stopInProgress.value) {
+      // #region agent log
+      debugAgentLog(
+        'record_page.dart:stopRecording',
+        'duplicate stop ignored',
+        {'recorderState': recorderController.recorderState.name},
+        hypothesisId: 'H',
+        runId: 'post-fix',
+      );
+      // #endregion
+      return;
+    }
+    _stopInProgress.value = true;
 
-    if (path != null) {
+    // #region agent log
+    debugAgentLog(
+      'record_page.dart:stopRecording',
+      'stopRecording invoked',
+      {
+        'lifecycleState': _lifecycleState.name,
+        'isRecording': isRecording.value,
+        'seconds': seconds.value,
+        'recorderRecording': recorderController.isRecording,
+        'recorderState': recorderController.recorderState.name,
+      },
+      hypothesisId: 'A,F,H',
+      runId: 'post-fix',
+    );
+    // #endregion
+
+    try {
+      var path = await recorderController.stop();
+      _stopDurationListener();
+      timer?.cancel();
+      isRecording.value = false;
+      await RecordingForeground.stop();
+
+      if (path == null &&
+          recordedFilePath != null &&
+          File(recordedFilePath!).existsSync()) {
+        path = recordedFilePath;
+        // #region agent log
+        debugAgentLog(
+          'record_page.dart:stopRecording',
+          'using fallback recordedFilePath',
+          {
+            'path': path,
+            'recorderState': recorderController.recorderState.name,
+          },
+          hypothesisId: 'H,I',
+          runId: 'post-fix',
+        );
+        // #endregion
+      }
+
+      if (path != null) {
       recordedFilePath = path;
       transcribeController.currentAudioPath.value = path;
       final isContinue = transcribeController.isContinuingRecording;
-      final newRecordingSeconds = seconds.value;
+      final uiSeconds = seconds.value;
+      final recordedSeconds = recorderController.recordedDuration.inSeconds;
+      final newRecordingSeconds =
+          recordedSeconds > 0 ? recordedSeconds : uiSeconds;
       final audioFile = File(path);
       // #region agent log
       debugAgentLog(
@@ -121,9 +231,17 @@ class _RecordPageState extends State<RecordPage> {
           'sessionMode': transcribeController.recordingSessionMode.value.name,
           'fileExists': audioFile.existsSync(),
           'fileBytes': audioFile.existsSync() ? audioFile.lengthSync() : 0,
-          'recordingSeconds': newRecordingSeconds,
+          'uiSeconds': uiSeconds,
+          'recordedSeconds': recordedSeconds,
+          'savedSeconds': newRecordingSeconds,
+          'recorderElapsedMs': recorderController.elapsedDuration.inMilliseconds,
+          'recordedDurationMs':
+              recorderController.recordedDuration.inMilliseconds,
+          'durationMismatchSec': uiSeconds - recordedSeconds,
+          'totalBackgroundMs': _totalBackgroundMs,
         },
-        hypothesisId: 'A,D,F',
+        hypothesisId: 'A,B,D',
+        runId: 'post-fix',
       );
       // #endregion
 
@@ -169,13 +287,30 @@ class _RecordPageState extends State<RecordPage> {
           Get.toNamed(AppRoutes.recordingNotePage);
         }
       }
-    } else {
-      Get.snackbar("Error", "Failed to save recording");
-    }
+      } else {
+        // #region agent log
+        debugAgentLog(
+          'record_page.dart:stopRecording',
+          'no recording path',
+          {
+            'recordedFilePath': recordedFilePath,
+            'fallbackExists': recordedFilePath != null &&
+                File(recordedFilePath!).existsSync(),
+            'recorderState': recorderController.recorderState.name,
+          },
+          hypothesisId: 'H,I',
+          runId: 'post-fix',
+        );
+        // #endregion
+        Get.snackbar("Error", "Failed to save recording");
+      }
 
-    seconds.value = 0;
-    timeDisplay.value = "00:00:00";
-    transcribeController.prepareNewRecordingSession();
+      seconds.value = 0;
+      timeDisplay.value = "00:00:00";
+      transcribeController.prepareNewRecordingSession();
+    } finally {
+      _stopInProgress.value = false;
+    }
   }
 
   Future<void> processRecording(String path, int newRecordingSeconds) async {
@@ -261,7 +396,10 @@ class _RecordPageState extends State<RecordPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopDurationListener();
     timer?.cancel();
+    unawaited(RecordingForeground.stop());
     recorderController.dispose();
     super.dispose();
   }
@@ -294,12 +432,14 @@ class _RecordPageState extends State<RecordPage> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Obx(() {
-        return aiController.isLoading.value
+        final isBusy = aiController.isLoading.value || _stopInProgress.value;
+        return isBusy
             ? const CircularProgressIndicator()
             : Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildIconButton(Icons.close_rounded, AppColors.primary, () {
+                  _buildIconButton(Icons.close_rounded, AppColors.primary, () async {
+                    await RecordingForeground.stop();
                     Get.back();
                     transcribeController.prepareNewRecordingSession();
                   }),

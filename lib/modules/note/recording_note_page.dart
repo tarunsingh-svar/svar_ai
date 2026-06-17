@@ -8,6 +8,7 @@ import 'package:svar_ai/modules/ai/ai_controller.dart';
 import 'package:svar_ai/modules/note/note_pages.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/helpers/debug_agent_log.dart';
 import '../../../core/helpers/note_formatters.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../widgets/white_card.dart';
@@ -70,9 +71,27 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
     aiController.headingText.value =
         (title != null && title.isNotEmpty) ? title : 'Untitled Note';
     final savedSummary = note.summaryText?.trim();
+    final inMemoryTranscriptLen = aiController.transcriptText.value.length;
+    final inMemorySummaryLen = aiController.generatedText.value.length;
     aiController.generatedText.value = savedSummary ?? '';
     aiController.transcriptText.value =
         note.durationSeconds > 0 ? (note.transcribeText ?? '') : '';
+    // #region agent log
+    debugAgentLog(
+      'recording_note_page.dart:_syncNoteHeaderFromDb',
+      'synced note header from DB',
+      {
+        'noteId': note.id,
+        'dbTranscriptLen': (note.transcribeText ?? '').length,
+        'dbSummaryLen': (note.summaryText ?? '').length,
+        'inMemoryTranscriptLenBefore': inMemoryTranscriptLen,
+        'inMemorySummaryLenBefore': inMemorySummaryLen,
+        'isLoading': aiController.isLoading.value,
+        'isSummaryLoading': aiController.isSummaryLoading.value,
+      },
+      hypothesisId: 'D,E',
+    );
+    // #endregion
     selectedTab.value = 0;
     if (note.durationSeconds > 0) {
       transcribeController.recordingDurationSeconds.value =

@@ -11,7 +11,7 @@ void debugAgentLog(
   String runId = 'pre-fix',
 }) {
   final payload = jsonEncode({
-    'sessionId': '5ebe87',
+    'sessionId': 'bf19a1',
     'timestamp': DateTime.now().millisecondsSinceEpoch,
     'location': location,
     'message': message,
@@ -19,8 +19,11 @@ void debugAgentLog(
     'hypothesisId': hypothesisId,
     'runId': runId,
   });
+  // Mirror to Flutter console when device cannot reach host log file.
+  // ignore: avoid_print
+  print('[debug-bf19a1] $payload');
   try {
-    File('/Users/tarunsingh/svar_rework/.cursor/debug-5ebe87.log')
+    File('/Users/tarunsingh/svar_rework/.cursor/debug-bf19a1.log')
         .writeAsStringSync(
       '$payload\n',
       mode: FileMode.append,
@@ -37,7 +40,7 @@ Future<void> _postDebugLog(String payload) async {
       'http://127.0.0.1:7869/ingest/5bb2bbb2-3f4c-45b3-8d61-cfcc30071a75',
     ));
     req.headers.set('Content-Type', 'application/json');
-    req.headers.set('X-Debug-Session-Id', '5ebe87');
+    req.headers.set('X-Debug-Session-Id', 'bf19a1');
     req.write(payload);
     await req.close();
     client.close();
