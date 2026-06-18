@@ -1,6 +1,8 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
+  exclude:
+    - example/**
   ## TODO(Jay): Make this both rules false when we upgrade the flutter_lint version
   strong-mode:
     implicit-casts: true
