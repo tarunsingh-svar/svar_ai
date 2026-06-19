@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import '../constants/env.dart';
-import 'debug_agent_log.dart';
 
 final Logger logger = Logger(
   printer: PrettyPrinter(
@@ -57,24 +56,6 @@ class ApiHelper {
           final req = e.requestOptions;
           final start = req.extra['startTime'] as DateTime?;
           final dur = start != null ? DateTime.now().difference(start) : null;
-
-          // #region agent log
-          if (req.path.contains('transcribe') ||
-              req.path.contains('summarize')) {
-            debugAgentLog(
-              'api_helper.dart:onError',
-              'AI API error',
-              {
-                'path': req.path,
-                'status': e.response?.statusCode,
-                'durationMs': dur?.inMilliseconds,
-                'errorType': e.type.name,
-                'message': e.message,
-              },
-              hypothesisId: 'C,E',
-            );
-          }
-          // #endregion
 
           logger.e(
             '❌ ERROR\n '

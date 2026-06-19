@@ -4,7 +4,6 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/helpers/debug_agent_log.dart';
 import '../../core/theme/text_styles.dart';
 import '../subscription/subscription_controller.dart';
 
@@ -34,23 +33,6 @@ class _PricingPageState extends State<PricingPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _sub.loadOfferings();
       _selectDefault();
-      // #region agent log
-      final o = _sub.offering.value;
-      debugAgentLog(
-        'princing_page.dart:initState',
-        'paywall offerings after load',
-        {
-          'offeringId': o?.identifier,
-          'packageCount': o?.availablePackages.length ?? 0,
-          'catalogCount': _sub.catalogProducts.length,
-          'useCatalogFallback': _useCatalogFallback,
-          'selectedPackageId': _selectedPackage.value?.identifier,
-          'selectedProductId': _selectedProduct.value?.identifier,
-        },
-        hypothesisId: 'E,F',
-        runId: 'post-fix',
-      );
-      // #endregion
     });
   }
 

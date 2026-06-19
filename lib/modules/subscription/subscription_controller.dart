@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/revenuecat_config.dart';
 import '../../core/constants/plan_limits.dart';
-import '../../core/helpers/debug_agent_log.dart';
 
 /// Holds the user's subscription state and exposes the feature gates used
 /// across the app. Entitlement is read from the RevenueCat SDK (instant) and
@@ -121,17 +120,7 @@ class SubscriptionController extends GetxController {
   }
 
   Future<void> loadOfferings() async {
-    if (!_sdkAvailable) {
-      // #region agent log
-      debugAgentLog(
-        'subscription_controller.dart:loadOfferings',
-        'skipped: sdk not available (web?)',
-        {},
-        hypothesisId: 'A',
-      );
-      // #endregion
-      return;
-    }
+    if (!_sdkAvailable) return;
 
     offeringsError.value = '';
     catalogProducts.clear();
@@ -142,27 +131,6 @@ class SubscriptionController extends GetxController {
       final fallback = offerings.all[RevenueCatConfig.defaultOfferingId];
       final resolved = current ?? fallback;
 
-      // #region agent log
-      debugAgentLog(
-        'subscription_controller.dart:loadOfferings',
-        'getOfferings succeeded',
-        {
-          'currentOfferingId': current?.identifier,
-          'fallbackOfferingId': fallback?.identifier,
-          'resolvedOfferingId': resolved?.identifier,
-          'allOfferingIds': offerings.all.keys.toList(),
-          'packageCount': resolved?.availablePackages.length ?? 0,
-          'packageIds': resolved?.availablePackages
-                  .map((p) => p.identifier)
-                  .toList() ??
-              [],
-          'hasAnnual': resolved?.annual != null,
-          'hasMonthly': resolved?.monthly != null,
-          'hasLifetime': resolved?.lifetime != null,
-        },
-        hypothesisId: 'C,D',
-      );
-      // #endregion
       debugPrint(
         '[RC-DEBUG] offerings current=${current?.identifier} '
         'all=${offerings.all.keys.toList()} '
@@ -176,18 +144,7 @@ class SubscriptionController extends GetxController {
 
       offeringsError.value =
           'No packages in your RevenueCat offering. Loading products directly…';
-    } catch (e, s) {
-      // #region agent log
-      debugAgentLog(
-        'subscription_controller.dart:loadOfferings',
-        'getOfferings failed',
-        {
-          'error': e.toString(),
-          'stack': s.toString().split('\n').take(3).join(' | '),
-        },
-        hypothesisId: 'B',
-      );
-      // #endregion
+    } catch (e) {
       debugPrint('[RC-DEBUG] getOfferings FAILED: $e');
       offeringsError.value = e.toString();
     }
@@ -221,31 +178,10 @@ class SubscriptionController extends GetxController {
 
       catalogProducts.value = ordered;
 
-      // #region agent log
-      debugAgentLog(
-        'subscription_controller.dart:_loadCatalogProductsFallback',
-        'catalog products loaded',
-        {
-          'productIds': ordered.map((p) => p.identifier).toList(),
-          'count': ordered.length,
-        },
-        hypothesisId: 'C,D',
-        runId: 'post-fix',
-      );
-      // #endregion
       debugPrint(
         '[RC-DEBUG] catalog fallback products=${ordered.map((p) => p.identifier).toList()}',
       );
     } catch (e) {
-      // #region agent log
-      debugAgentLog(
-        'subscription_controller.dart:_loadCatalogProductsFallback',
-        'catalog products failed',
-        {'error': e.toString()},
-        hypothesisId: 'B',
-        runId: 'post-fix',
-      );
-      // #endregion
       debugPrint('[RC-DEBUG] catalog fallback FAILED: $e');
     }
   }

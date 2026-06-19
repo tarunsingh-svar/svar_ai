@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'dart:io';
 import '../../services/ai_service.dart';
-import '../../core/helpers/debug_agent_log.dart';
 import 'transcribe_controller.dart';
 
 class AIController extends GetxController {
@@ -46,39 +45,8 @@ class AIController extends GetxController {
       isLoading.value = true;
       isSummaryLoading.value = true;
 
-      // #region agent log
-      debugAgentLog(
-        'ai_controller.dart:processRecordedAudio',
-        'before transcribe API',
-        {
-          'appendToExisting': appendToExisting,
-          'existingTranscriptLen': existingTranscript.length,
-          'existingSummaryLen': existingSummary.length,
-          'fileExists': audioFile.existsSync(),
-          'fileBytes': audioFile.existsSync() ? audioFile.lengthSync() : 0,
-        },
-        hypothesisId: 'B,C',
-      );
-      // #endregion
-
       final newTranscriptRaw = await _service.transcribeAudio(audioFile);
       final newTranscript = newTranscriptRaw?.trim() ?? '';
-
-      // #region agent log
-      debugAgentLog(
-        'ai_controller.dart:processRecordedAudio',
-        'after transcribe API',
-        {
-          'rawLen': newTranscriptRaw?.length ?? 0,
-          'newTranscriptLen': newTranscript.length,
-          'wordCount': newTranscript.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length,
-          'startsWithError': newTranscript.startsWith('Error:'),
-          'isEmpty': newTranscript.isEmpty,
-        },
-        hypothesisId: 'C',
-        runId: 'post-fix',
-      );
-      // #endregion
 
       if (newTranscript.isEmpty || newTranscript == 'No transcript found') {
         if (!appendToExisting) {
@@ -120,27 +88,7 @@ class AIController extends GetxController {
       }
 
       await _persistSummaryToDb();
-
-      // #region agent log
-      debugAgentLog(
-        'ai_controller.dart:processRecordedAudio',
-        'processRecordedAudio success',
-        {
-          'combinedTranscriptLen': combinedTranscript.length,
-          'generatedTextLen': generatedText.value.length,
-        },
-        hypothesisId: 'C',
-      );
-      // #endregion
     } catch (e) {
-      // #region agent log
-      debugAgentLog(
-        'ai_controller.dart:processRecordedAudio',
-        'processRecordedAudio error',
-        {'error': e.toString()},
-        hypothesisId: 'C',
-      );
-      // #endregion
       if (!appendToExisting) {
         transcriptText.value = 'Error: $e';
       } else {

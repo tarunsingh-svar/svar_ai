@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../helpers/debug_agent_log.dart';
 import 'environment.dart';
 
 /// Central RevenueCat identifiers and SDK bootstrap.
@@ -47,33 +46,8 @@ class RevenueCatConfig {
 
       await Purchases.configure(configuration);
 
-      // #region agent log
-      debugAgentLog(
-        'revenuecat_config.dart:init',
-        'Purchases.configure succeeded',
-        {
-          'platform': platform,
-          'keyPrefix': keyPrefix,
-          'hasUserId': userId != null,
-        },
-        hypothesisId: 'A',
-      );
-      // #endregion
       debugPrint('[RC-DEBUG] configure OK platform=$platform keyPrefix=$keyPrefix');
-    } catch (e, s) {
-      // #region agent log
-      debugAgentLog(
-        'revenuecat_config.dart:init',
-        'Purchases.configure failed',
-        {
-          'platform': platform,
-          'keyPrefix': keyPrefix,
-          'error': e.toString(),
-          'stack': s.toString().split('\n').take(3).join(' | '),
-        },
-        hypothesisId: 'A',
-      );
-      // #endregion
+    } catch (e) {
       debugPrint('[RC-DEBUG] configure FAILED: $e');
       rethrow;
     }

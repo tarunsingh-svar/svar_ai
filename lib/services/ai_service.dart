@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../core/helpers/api_helper.dart';
-import '../core/helpers/debug_agent_log.dart';
 
 class AIService {
   final ApiHelper _apiHelper = ApiHelper();
@@ -57,31 +56,8 @@ class AIService {
 
       final statusCode = res?.statusCode;
       if (statusCode == 202 || statusCode == 200) {
-        // #region agent log
-        debugAgentLog(
-          'ai_service.dart:_startTranscriptionJob',
-          'upload accepted',
-          {'attempt': attempt, 'statusCode': statusCode},
-          hypothesisId: 'J',
-          runId: 'post-fix-2',
-        );
-        // #endregion
         return res;
       }
-
-      // #region agent log
-      debugAgentLog(
-        'ai_service.dart:_startTranscriptionJob',
-        'upload attempt failed',
-        {
-          'attempt': attempt,
-          'statusCode': statusCode,
-          'error': _readField(res?.data, 'error'),
-        },
-        hypothesisId: 'J',
-        runId: 'post-fix-2',
-      );
-      // #endregion
 
       if (attempt < _maxUploadAttempts) {
         await Future.delayed(Duration(seconds: 2 * attempt));
@@ -113,7 +89,6 @@ class AIService {
     final res = await _startTranscriptionJob(formData);
 
     final data = res?.data;
-    final statusCode = res?.statusCode;
 
     // Legacy sync server response.
     final syncTranscript = _extractTranscript(data);
@@ -123,19 +98,6 @@ class AIService {
 
     final jobId = _readField(data, 'job_id');
     if (jobId == null) {
-      // #region agent log
-      debugAgentLog(
-        'ai_service.dart:transcribeAudio',
-        'no job_id in transcribe response',
-        {
-          'statusCode': statusCode,
-          'dataType': data.runtimeType.toString(),
-          'error': _readField(data, 'error'),
-        },
-        hypothesisId: 'G,J',
-        runId: 'post-fix-2',
-      );
-      // #endregion
       return _readField(data, 'error');
     }
 
@@ -159,19 +121,6 @@ class AIService {
       }
 
       final status = _readField(res?.data, 'status');
-      // #region agent log
-      debugAgentLog(
-        'ai_service.dart:_pollTranscriptionJob',
-        'poll status',
-        {
-          'jobId': jobId,
-          'status': status,
-          'statusCode': res?.statusCode,
-        },
-        hypothesisId: 'G',
-        runId: 'post-fix',
-      );
-      // #endregion
 
       if (status == 'complete') {
         return _readField(res?.data, 'transcript');
