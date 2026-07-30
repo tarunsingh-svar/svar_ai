@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:get/get.dart';
@@ -12,6 +13,10 @@ enum RecordingSessionMode { newNote, continueNote }
 
 class TranscribeController extends GetxController {
   static const _audioPathKeyPrefix = 'note_audio_path_';
+
+  /// Bucket shared with the web app. Objects live under `<user_id>/…` so the
+  /// Storage RLS policies can key off the first path segment.
+  static const audioBucket = 'note-audio';
 
   final _supabase = Supabase.instance.client;
   final thisNoteId = 0.obs;
@@ -71,6 +76,86 @@ class TranscribeController extends GetxController {
     final prefs = Get.find<SharedPreferences>();
     await prefs.setString(_audioPathKey(noteId), path);
     currentAudioPath.value = path;
+
+    // Fire and forget: the local file already backs playback on this device,
+    // so a failed upload should never block finishing a recording. It only
+    // costs the user cross-device playback for this note.
+    unawaited(uploadAudioToCloud(noteId, path));
+  }
+
+  /// Copies a local recording into Storage and records the object path on the
+  /// note, which is what makes the audio playable on the web app and on a
+  /// second device.
+  Future<void> uploadAudioToCloud(int noteId, String localPath) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null || noteId == 0) return;
+
+    final file = File(localPath);
+    if (!file.existsSync()) return;
+
+    final lastDot = localPath.lastIndexOf('.');
+    final extension = lastDot == -1 ? '' : localPath.substring(lastDot + 1);
+    final stamp =
+        DateTime.now().toIso8601String().replaceAll(RegExp(r'[:.]'), '-');
+    final objectPath =
+        '${user.id}/$stamp-$noteId.${extension.isEmpty ? 'm4a' : extension}';
+
+    try {
+      await _supabase.storage.from(audioBucket).upload(objectPath, file);
+      await _supabase
+          .from('transcribe')
+          .update({'audio_path': objectPath})
+          .eq('id', noteId);
+      logger.i('☁️ Uploaded note $noteId audio to $objectPath');
+    } catch (e, s) {
+      logger.i('⚠️ uploadAudioToCloud failed for note $noteId: $e\n$s');
+    }
+  }
+
+  /// Removes the note's recording from Storage. Going through the Storage API
+  /// (rather than letting the row cascade) is what actually reclaims the file.
+  Future<void> _deleteCloudAudio(int noteId) async {
+    if (noteId == 0) return;
+
+    try {
+      final row = await _supabase
+          .from('transcribe')
+          .select('audio_path')
+          .eq('id', noteId)
+          .maybeSingle();
+
+      final objectPath = row?['audio_path'] as String?;
+      if (objectPath == null || objectPath.isEmpty) return;
+
+      await _supabase.storage.from(audioBucket).remove([objectPath]);
+    } catch (e) {
+      logger.i('⚠️ _deleteCloudAudio failed for note $noteId: $e');
+    }
+  }
+
+  /// Signed URL for a note's cloud recording, or null when there isn't one.
+  /// Used when the local file is gone — after a reinstall, or for a note that
+  /// was recorded on another device.
+  Future<String?> cloudAudioUrl(int noteId) async {
+    if (noteId == 0) return null;
+
+    try {
+      final row = await _supabase
+          .from('transcribe')
+          .select('audio_path')
+          .eq('id', noteId)
+          .maybeSingle();
+
+      final objectPath = row?['audio_path'] as String?;
+      if (objectPath == null || objectPath.isEmpty) return null;
+
+      return await _supabase.storage
+          .from(audioBucket)
+          .createSignedUrl(objectPath, 60 * 60);
+    } catch (e) {
+      logger.i('⚠️ cloudAudioUrl failed for note $noteId: $e');
+      return null;
+    }
   }
 
   Future<void> restoreAudioPathForCurrentNote() async {
@@ -418,6 +503,7 @@ class TranscribeController extends GetxController {
 
     try {
       await clearStoredAudioPath(id);
+      await _deleteCloudAudio(id);
 
       final res = await _supabase.from('transcribe').delete().eq('id', id);
 

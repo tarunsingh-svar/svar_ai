@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/env.dart';
 
 final Logger logger = Logger(
@@ -26,7 +27,16 @@ class ApiHelper {
 
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
+        onRequest: (options, handler) async {
+          // Every endpoint except the health check requires the caller's
+          // Supabase access token. Refresh first if it is close to expiring,
+          // otherwise a long recording can finish uploading against a token
+          // that expired mid-flight.
+          final token = await _accessToken();
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+
           logger.i(
             '➡️ REQUEST\n'
             'URL: ${options.baseUrl}${options.path}\n'
@@ -70,6 +80,30 @@ class ApiHelper {
         },
       ),
     );
+  }
+
+  static Future<String?> _accessToken() async {
+    final auth = Supabase.instance.client.auth;
+    final session = auth.currentSession;
+    if (session == null) return null;
+
+    final expiresAt = session.expiresAt;
+    final expiringSoon = expiresAt != null &&
+        DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000)
+                .difference(DateTime.now())
+                .inSeconds <
+            60;
+
+    if (session.isExpired || expiringSoon) {
+      try {
+        final refreshed = await auth.refreshSession();
+        return refreshed.session?.accessToken ?? session.accessToken;
+      } catch (e) {
+        logger.e('Token refresh failed: $e');
+      }
+    }
+
+    return session.accessToken;
   }
 
   void _logRequest(RequestOptions options) {
