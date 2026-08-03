@@ -208,6 +208,9 @@ class _HomePageState extends State<HomePage> {
                       itemCount: filteredNotes.length,
                       itemBuilder: (context, index) {
                         final note = filteredNotes[index];
+                        final title = (note.title ?? "").trim().isNotEmpty
+                            ? note.title!.trim()
+                            : "Untitled Note";
 
                         return InkWell(
                           onTap: () {
@@ -255,9 +258,9 @@ class _HomePageState extends State<HomePage> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          (note.title ?? "").trim().isNotEmpty
-                                              ? note.title!.trim()
-                                              : "Untitled Note",
+                                          title,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: AppTextTheme.homeCardTitle,
                                         ),
                                         SizedBox(height: 1.h),

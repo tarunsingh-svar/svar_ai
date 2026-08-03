@@ -299,18 +299,12 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
         SizedBox(height: 2.5.h),
         Text(
           'Summary',
-          style: AppTextTheme.body1Medium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppColors.textBlack,
-          ),
+          style: AppTextTheme.noteSectionHeading,
         ),
         SizedBox(height: 2.h),
         EditableTextWidget(
           text: aiController.generatedText.value,
-          style: AppTextTheme.body2.copyWith(
-            color: AppColors.textBlack,
-            fontSize: 15.sp,
-          ),
+          style: AppTextTheme.noteContent,
           maxLines: 200,
           onChanged: (val) {
             aiController.generatedText.value = val;
@@ -373,7 +367,7 @@ class _RecordingNotePageState extends State<RecordingNotePage> {
         SizedBox(height: 3.h),
         EditableTextWidget(
           text: aiController.transcriptText.value,
-          style: AppTextTheme.body2,
+          style: AppTextTheme.noteContent,
           maxLines: 200,
           onChanged: (val) {
             transcribeController.updateTranscribeText(

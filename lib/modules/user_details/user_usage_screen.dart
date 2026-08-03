@@ -15,7 +15,7 @@ import '../../widgets/custom_button.dart';
 class UserUsageScreen extends StatelessWidget {
   UserUsageScreen({super.key});
 
-  final RxInt selectedIndex = (-1).obs;
+  final RxList<int> selectedIndices = <int>[].obs;
 
   final List<String> usageOptions = const [
     'Meetings & Work',
@@ -26,8 +26,20 @@ class UserUsageScreen extends StatelessWidget {
     'Take Lecture Notes',
   ];
 
+  void _toggleOption(int index, UserDetailsController controller) {
+    if (selectedIndices.contains(index)) {
+      selectedIndices.remove(index);
+    } else {
+      selectedIndices.add(index);
+    }
+
+    final selected = selectedIndices.toList()..sort();
+    controller.usage.value =
+        selected.map((i) => usageOptions[i]).join(', ');
+  }
+
   void _onContinue() async {
-    if (selectedIndex.value != -1) {
+    if (selectedIndices.isNotEmpty) {
       EasyLoading.show(maskType: EasyLoadingMaskType.black);
       final userDetailsController = Get.find<UserDetailsController>();
       final prefs = Get.find<SharedPreferences>();
@@ -82,22 +94,26 @@ class UserUsageScreen extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 6.h),
+              SizedBox(height: 1.5.h),
+
+              Text(
+                'Select all that apply',
+                style: AppTextTheme.body2.copyWith(color: AppColors.textGrey),
+              ),
+
+              SizedBox(height: 4.h),
 
               // Options
               Obx(
                 () => Column(
                   children: List.generate(usageOptions.length, (index) {
-                    final bool isSelected = selectedIndex.value == index;
+                    final bool isSelected = selectedIndices.contains(index);
 
                     return Padding(
                       padding: EdgeInsets.only(bottom: 2.5.h),
                       child: GestureDetector(
-                        onTap: () {
-                          selectedIndex.value = index;
-                          userDetailsController.usage.value =
-                              usageOptions[index];
-                        },
+                        onTap: () =>
+                            _toggleOption(index, userDetailsController),
                         child: Container(
                           width: double.infinity,
                           padding: EdgeInsets.symmetric(

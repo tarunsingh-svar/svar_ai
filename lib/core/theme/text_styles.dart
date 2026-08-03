@@ -63,6 +63,24 @@ class AppTextTheme {
     color: AppColors.black,
   );
 
+  /// Primary reading size for note summary and transcript content.
+  static final TextStyle noteContent = GoogleFonts.redHatText(
+    fontWeight: FontWeight.w400,
+    fontSize: 16.sp,
+    letterSpacing: 0.01,
+    height: 1.5,
+    color: AppColors.textBlack,
+  );
+
+  /// Section labels within a note (e.g. "Summary") — above [noteContent].
+  static final TextStyle noteSectionHeading = GoogleFonts.redHatText(
+    fontWeight: FontWeight.w500,
+    fontSize: 17.sp,
+    letterSpacing: 0.01,
+    height: 1.3,
+    color: AppColors.textBlack,
+  );
+
   static final TextStyle body2 = GoogleFonts.redHatText(
     fontWeight: FontWeight.w400,
     fontSize: 13,

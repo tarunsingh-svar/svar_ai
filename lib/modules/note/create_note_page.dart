@@ -186,13 +186,10 @@ class _CreateNotePageState extends State<CreateNotePage> {
                     maxLines: null,
                     expands: true,
                     textAlignVertical: TextAlignVertical.top,
-                    style: AppTextTheme.body2.copyWith(
-                      color: AppColors.textBlack,
-                      fontSize: 15.sp,
-                    ),
+                    style: AppTextTheme.noteContent,
                     decoration: InputDecoration(
                       hintText: 'Write your note here...',
-                      hintStyle: AppTextTheme.body2.copyWith(
+                      hintStyle: AppTextTheme.noteContent.copyWith(
                         color: AppColors.grey500,
                       ),
                       border: InputBorder.none,
