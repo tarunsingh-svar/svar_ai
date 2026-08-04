@@ -9,6 +9,11 @@ class SupportConfig {
 
   static const androidPackageId = 'com.svar.ai';
 
+  /// Public legal URLs. Both store consoles require these in the app listing;
+  /// in-app screens link to the bundled copies instead so they work offline.
+  static const privacyPolicyUrl = 'https://svar.ai/privacy';
+  static const termsOfServiceUrl = 'https://svar.ai/terms';
+
   /// Numeric App Store ID from App Store Connect (e.g. 1234567890).
   static const iosAppStoreId = '';
 

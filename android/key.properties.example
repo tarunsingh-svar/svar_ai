@@ -1,0 +1,14 @@
+# Copy to android/key.properties (gitignored) to enable release signing.
+#
+# Generate the upload keystore OUTSIDE this repository, for example:
+#
+#   keytool -genkey -v -keystore ~/keys/svar-upload.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias svar-upload
+#
+# Back up that file and its passwords somewhere durable. Losing the upload key
+# means asking Google to reset it before you can ship another update.
+
+storeFile=/Users/you/keys/svar-upload.jks
+storePassword=
+keyAlias=svar-upload
+keyPassword=

@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/revenuecat_config.dart';
 import '../../core/constants/plan_limits.dart';
+import 'entitlement_status.dart';
 
 /// Holds the user's subscription state and exposes the feature gates used
 /// across the app. Entitlement is read from the RevenueCat SDK (instant) and
@@ -40,7 +41,9 @@ class SubscriptionController extends GetxController {
 
   final RxBool isPurchasing = false.obs;
 
-  bool get _sdkAvailable => !kIsWeb;
+  /// Purchases throws when the SDK was never configured, which happens on web
+  /// and on any build missing its RevenueCat key.
+  bool get _sdkAvailable => !kIsWeb && RevenueCatConfig.isConfigured;
 
   /// Human-readable plan label for settings UI.
   String get planLabel {
@@ -94,29 +97,18 @@ class SubscriptionController extends GetxController {
     final entitlement =
         info.entitlements.active[RevenueCatConfig.proEntitlementId];
 
-    if (entitlement == null) {
-      isPro.value = false;
-      isTrial.value = false;
-      isLifetime.value = false;
-      trialDaysLeft.value = 0;
-      return;
-    }
+    _applyStatus(EntitlementStatus.fromEntitlement(
+      isActive: entitlement != null,
+      isTrialPeriod: entitlement?.periodType == PeriodType.trial,
+      expirationDate: entitlement?.expirationDate,
+    ));
+  }
 
-    isPro.value = true;
-    isTrial.value = entitlement.periodType == PeriodType.trial;
-    // A non-expiring entitlement (no expiration date) is the lifetime purchase.
-    isLifetime.value = entitlement.expirationDate == null;
-
-    final expiry = entitlement.expirationDate;
-    if (isTrial.value && expiry != null) {
-      final end = DateTime.tryParse(expiry);
-      if (end != null) {
-        final diff = end.difference(DateTime.now()).inDays;
-        trialDaysLeft.value = diff < 0 ? 0 : diff;
-      }
-    } else {
-      trialDaysLeft.value = 0;
-    }
+  void _applyStatus(EntitlementStatus status) {
+    isPro.value = status.isPro;
+    isTrial.value = status.isTrial;
+    isLifetime.value = status.isLifetime;
+    trialDaysLeft.value = status.trialDaysLeft;
   }
 
   Future<void> loadOfferings() async {
@@ -131,12 +123,6 @@ class SubscriptionController extends GetxController {
       final fallback = offerings.all[RevenueCatConfig.defaultOfferingId];
       final resolved = current ?? fallback;
 
-      debugPrint(
-        '[RC-DEBUG] offerings current=${current?.identifier} '
-        'all=${offerings.all.keys.toList()} '
-        'packages=${resolved?.availablePackages.length ?? 0}',
-      );
-
       if (resolved != null && resolved.availablePackages.isNotEmpty) {
         offering.value = resolved;
         return;
@@ -145,7 +131,7 @@ class SubscriptionController extends GetxController {
       offeringsError.value =
           'No packages in your RevenueCat offering. Loading products directly…';
     } catch (e) {
-      debugPrint('[RC-DEBUG] getOfferings FAILED: $e');
+      debugPrint('RevenueCat getOfferings failed: $e');
       offeringsError.value = e.toString();
     }
 
@@ -177,12 +163,8 @@ class SubscriptionController extends GetxController {
       ];
 
       catalogProducts.value = ordered;
-
-      debugPrint(
-        '[RC-DEBUG] catalog fallback products=${ordered.map((p) => p.identifier).toList()}',
-      );
     } catch (e) {
-      debugPrint('[RC-DEBUG] catalog fallback FAILED: $e');
+      debugPrint('RevenueCat catalog fallback failed: $e');
     }
   }
 
@@ -294,10 +276,7 @@ class SubscriptionController extends GetxController {
         debugPrint('RevenueCat logOut error: $e');
       }
     }
-    isPro.value = false;
-    isTrial.value = false;
-    isLifetime.value = false;
-    trialDaysLeft.value = 0;
+    _applyStatus(EntitlementStatus.free);
     notesCreatedCount.value = 0;
   }
 }

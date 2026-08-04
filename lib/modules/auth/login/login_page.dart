@@ -7,6 +7,7 @@ import 'package:svar_ai/modules/auth/login/login_controller.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
+import '../../../widgets/legal_link.dart';
 import '../../../widgets/white_card.dart';
 
 class LoginPage extends StatelessWidget {
@@ -15,6 +16,10 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final LoginController loginController = Get.find();
+    final legalTextStyle = AppTextTheme.body2.copyWith(
+      color: AppColors.grey500,
+      fontSize: 15.sp,
+    );
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -147,39 +152,27 @@ class LoginPage extends StatelessWidget {
 
               SizedBox(height: 5.h),
 
-              // Terms & Privacy Text
-              Text.rich(
-                TextSpan(
-                  text: 'By Continuing, you agree to our ',
-                  style: AppTextTheme.body2.copyWith(
-                    color: AppColors.grey500,
-                    fontSize: 15.sp,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: 'Terms of Service',
-                      style: AppTextTheme.body2.copyWith(
-                        color: AppColors.grey500,
-                        fontSize: 15.sp,
-                      ),
-                    ),
-                    TextSpan(
-                      text: ' and ',
-                      style: AppTextTheme.body2.copyWith(
-                        color: AppColors.grey500,
-                        fontSize: 15.sp,
-                      ),
-                    ),
-                    TextSpan(
-                      text: 'Privacy Policy.',
-                      style: AppTextTheme.body2.copyWith(
-                        color: AppColors.grey500,
-                        fontSize: 15.sp,
-                      ),
-                    ),
-                  ],
-                ),
+              // Terms & Privacy — both tappable, as the stores require.
+              Text(
+                'By continuing, you agree to our',
+                style: legalTextStyle,
                 textAlign: TextAlign.center,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  LegalLink(
+                    label: 'Terms of Service',
+                    route: AppRoutes.termsOfServicePage,
+                    style: legalTextStyle,
+                  ),
+                  Text('and', style: legalTextStyle),
+                  LegalLink(
+                    label: 'Privacy Policy',
+                    route: AppRoutes.privacyPolicyPage,
+                    style: legalTextStyle,
+                  ),
+                ],
               ),
             ],
           ),

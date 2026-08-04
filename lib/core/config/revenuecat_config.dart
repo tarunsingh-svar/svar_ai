@@ -23,17 +23,32 @@ class RevenueCatConfig {
   static const yearlyProductId = 'svar_pro_yearly';
   static const lifetimeProductId = 'svar_pro_lifetime';
 
-  static String get _apiKey =>
-      Platform.isIOS ? Environment.revenueCatIosApiKey : Environment.revenueCatAndroidApiKey;
+  static bool _isConfigured = false;
+
+  /// True once [init] has successfully configured the SDK. Callers must check
+  /// this before touching `Purchases`, which throws when unconfigured.
+  static bool get isConfigured => _isConfigured;
+
+  static String get _apiKey => Platform.isIOS
+      ? Environment.revenueCatIosApiKey
+      : Environment.revenueCatAndroidApiKey;
 
   /// Initialize the RevenueCat SDK. Safe to call once at app start.
   /// If a Supabase user is already signed in, the SDK is logged in with the
   /// Supabase user id so purchases are tied to the account across devices.
+  ///
+  /// Never throws: billing being unavailable should leave the user on the free
+  /// tier, not prevent the app from starting.
   static Future<void> init() async {
     if (kIsWeb) return;
 
-    final platform = Platform.isIOS ? 'ios' : 'android';
-    final keyPrefix = _apiKey.length >= 8 ? _apiKey.substring(0, 8) : 'short';
+    if (_apiKey.isEmpty) {
+      debugPrint(
+        'RevenueCat: no API key for this platform, skipping init. '
+        'Pass REVENUECAT_IOS_KEY / REVENUECAT_ANDROID_KEY via --dart-define.',
+      );
+      return;
+    }
 
     try {
       await Purchases.setLogLevel(
@@ -45,11 +60,9 @@ class RevenueCatConfig {
         ..appUserID = userId;
 
       await Purchases.configure(configuration);
-
-      debugPrint('[RC-DEBUG] configure OK platform=$platform keyPrefix=$keyPrefix');
+      _isConfigured = true;
     } catch (e) {
-      debugPrint('[RC-DEBUG] configure FAILED: $e');
-      rethrow;
+      debugPrint('RevenueCat configure failed: $e');
     }
   }
 }

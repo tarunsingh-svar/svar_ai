@@ -8,6 +8,7 @@ import 'package:svar_ai/modules/subscription/subscription_controller.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/helpers/transcription_preferences.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../widgets/custom_button.dart';
 
@@ -68,11 +69,7 @@ class SettingsPage extends StatelessWidget {
                 title: "Help & Feedback",
                 onTap: () => Get.toNamed(AppRoutes.helpFeedbackPage),
               ),
-              _buildSettingsTile(
-                icon: AppAssets.lang,
-                title: "Language Options",
-                onTap: () {},
-              ),
+              const _LanguageSettingsTile(),
               _buildSettingsTile(
                 icon: AppAssets.privacyPolicy,
                 title: "Privacy Policy",
@@ -284,10 +281,11 @@ class SettingsPage extends StatelessWidget {
   }
 
   // ✅ Settings tile
-  Widget _buildSettingsTile({
+  static Widget _buildSettingsTile({
     required String icon,
     required String title,
     required VoidCallback onTap,
+    String? trailingText,
   }) {
     return Column(
       children: [
@@ -309,6 +307,16 @@ class SettingsPage extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (trailingText != null)
+                  Padding(
+                    padding: EdgeInsets.only(right: 2.w),
+                    child: Text(
+                      trailingText,
+                      style: AppTextTheme.body3.copyWith(
+                        color: AppColors.textGrey,
+                      ),
+                    ),
+                  ),
                 Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 16.sp,
@@ -320,6 +328,30 @@ class SettingsPage extends StatelessWidget {
         ),
         Divider(thickness: 2.sp),
       ],
+    );
+  }
+}
+
+/// Shows the current transcription language alongside the row, so the setting
+/// is legible without opening it.
+class _LanguageSettingsTile extends StatefulWidget {
+  const _LanguageSettingsTile();
+
+  @override
+  State<_LanguageSettingsTile> createState() => _LanguageSettingsTileState();
+}
+
+class _LanguageSettingsTileState extends State<_LanguageSettingsTile> {
+  @override
+  Widget build(BuildContext context) {
+    return SettingsPage._buildSettingsTile(
+      icon: AppAssets.lang,
+      title: "Language Options",
+      trailingText: TranscriptionPreferences.language.name,
+      onTap: () async {
+        await Get.toNamed(AppRoutes.languageSettingsPage);
+        if (mounted) setState(() {});
+      },
     );
   }
 }

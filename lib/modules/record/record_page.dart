@@ -39,11 +39,18 @@ class _RecordPageState extends State<RecordPage> {
   void initState() {
     super.initState();
 
+    // 16 kHz mono is what every speech-to-text model resamples to internally,
+    // so this costs no accuracy. It matters because OpenAI's transcription
+    // endpoint rejects uploads over 25 MB: at the old 44.1 kHz that ceiling
+    // arrived around 25 minutes, which unlimited-length Pro recordings would
+    // cross. At these settings it is roughly 100 minutes, and uploads over
+    // mobile data are several times faster.
     recorderController = RecorderController()
       ..androidEncoder = AndroidEncoder.aac
       ..androidOutputFormat = AndroidOutputFormat.mpeg4
       ..iosEncoder = IosEncoder.kAudioFormatMPEG4AAC
-      ..sampleRate = 44100;
+      ..sampleRate = 16000
+      ..bitRate = 32000;
 
     WidgetsBinding.instance.addPostFrameCallback((_) => startRecording());
   }

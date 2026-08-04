@@ -43,3 +43,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Build-time configuration passed via --dart-define-from-file. Holds production
+# RevenueCat keys, so only the example template is committed.
+/dart_defines/*.json
+!/dart_defines/example.json
+
+# Release signing. The keystore itself lives outside the repo entirely.
+/android/key.properties
+*.jks
+*.keystore

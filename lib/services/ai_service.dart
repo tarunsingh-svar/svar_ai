@@ -2,9 +2,29 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../core/helpers/api_helper.dart';
+import '../core/helpers/transcription_preferences.dart';
 
 class AIService {
-  final ApiHelper _apiHelper = ApiHelper();
+  /// [apiHelper] and the durations are injectable so the transcription polling
+  /// loop can be tested without a network or a three-minute wall-clock wait.
+  /// Callers in the app use the defaults.
+  AIService({
+    ApiHelper? apiHelper,
+    this.pollInterval = const Duration(seconds: 2),
+    this.uploadRetryBackoff = const Duration(seconds: 2),
+    this.transcribeTimeout = const Duration(minutes: 3),
+  }) : _apiHelper = apiHelper ?? ApiHelper();
+
+  final ApiHelper _apiHelper;
+
+  /// Gap between job-status polls.
+  final Duration pollInterval;
+
+  /// Base delay before retrying a failed upload; multiplied by the attempt.
+  final Duration uploadRetryBackoff;
+
+  /// How long to keep polling before giving up on a job.
+  final Duration transcribeTimeout;
 
   String? _readField(dynamic data, String key) {
     if (data == null) return null;
@@ -27,10 +47,8 @@ class AIService {
   }
 
   static const _summarizeTimeout = Duration(seconds: 60);
-  static const _transcribeTimeout = Duration(minutes: 3);
   // Render free tier can take 30–90s to cold-start before accepting uploads.
   static const _uploadTimeout = Duration(seconds: 90);
-  static const _pollInterval = Duration(seconds: 2);
   static const _maxUploadAttempts = 3;
 
   Future<void> _wakeTranscribeServer() async {
@@ -60,7 +78,7 @@ class AIService {
       }
 
       if (attempt < _maxUploadAttempts) {
-        await Future.delayed(Duration(seconds: 2 * attempt));
+        await Future.delayed(uploadRetryBackoff * attempt);
         await _wakeTranscribeServer();
       }
     }
@@ -82,8 +100,12 @@ class AIService {
   }
 
   Future<String?> transcribeAudio(File audioFile) async {
+    // The server routes to a transcription provider from these two fields: an
+    // explicit language decides outright, the locale breaks the tie on auto.
     final formData = FormData.fromMap({
       "file": await MultipartFile.fromFile(audioFile.path),
+      "language": TranscriptionPreferences.languageCode,
+      "locale": TranscriptionPreferences.deviceLocale,
     });
 
     final res = await _startTranscriptionJob(formData);
@@ -105,10 +127,10 @@ class AIService {
   }
 
   Future<String?> _pollTranscriptionJob(String jobId) async {
-    final deadline = DateTime.now().add(_transcribeTimeout);
+    final deadline = DateTime.now().add(transcribeTimeout);
 
     while (DateTime.now().isBefore(deadline)) {
-      await Future.delayed(_pollInterval);
+      await Future.delayed(pollInterval);
 
       final res = await _apiHelper.sendRequest(
         endpoint: "/transcribe/status/$jobId",

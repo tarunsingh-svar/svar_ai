@@ -18,6 +18,5 @@ class InitialBinding extends Bindings {
     // Initialize SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     Get.put<SharedPreferences>(prefs, permanent: true);
-    Get.put<SharedPreferences>(prefs, permanent: true);
   }
 }

@@ -13,6 +13,7 @@ import '../../modules/note/recording_note_page.dart';
 import '../../modules/pricing/princing_page.dart';
 import '../../modules/record/record_page.dart';
 import '../../modules/settings/help_feedback_page.dart';
+import '../../modules/settings/language_settings_page.dart';
 import '../../modules/settings/whats_new_page.dart';
 import '../../modules/settings/legal_document_page.dart';
 import '../../modules/settings/settings_page.dart';
@@ -58,6 +59,10 @@ class AppPages {
     GetPage(
       name: AppRoutes.whatsNewPage,
       page: () => const WhatsNewPage(),
+    ),
+    GetPage(
+      name: AppRoutes.languageSettingsPage,
+      page: () => const LanguageSettingsPage(),
     ),
     GetPage(name: AppRoutes.pricingPage, page: () => PricingPage()),
     GetPage(name: AppRoutes.recordPage, page: () => RecordPage()),

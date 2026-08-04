@@ -15,6 +15,7 @@ class AppRoutes {
   static const privacyPolicyPage = '/privacyPolicyPage';
   static const termsOfServicePage = '/termsOfServicePage';
   static const helpFeedbackPage = '/helpFeedbackPage';
+  static const languageSettingsPage = '/languageSettingsPage';
   static const whatsNewPage = '/whatsNewPage';
   static const pricingPage = '/pricingPage';
   static const recordPage = '/recordPage';

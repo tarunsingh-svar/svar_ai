@@ -4,7 +4,9 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/routing/app_routes.dart';
 import '../../core/theme/text_styles.dart';
+import '../../widgets/legal_link.dart';
 import '../subscription/subscription_controller.dart';
 
 enum _CatalogKind { yearly, monthly, lifetime }
@@ -127,9 +129,15 @@ class _PricingPageState extends State<PricingPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Terms of use", style: AppTextTheme.body3),
+                        const LegalLink(
+                          label: "Terms of use",
+                          route: AppRoutes.termsOfServicePage,
+                        ),
                         SizedBox(width: 10.w),
-                        Text("Privacy Policy", style: AppTextTheme.body3),
+                        const LegalLink(
+                          label: "Privacy Policy",
+                          route: AppRoutes.privacyPolicyPage,
+                        ),
                       ],
                     ),
                     SizedBox(height: 2.h),
