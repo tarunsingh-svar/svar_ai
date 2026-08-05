@@ -38,11 +38,7 @@ class ApiHelper {
           }
 
           logger.i(
-            '➡️ REQUEST\n'
-            'URL: ${options.baseUrl}${options.path}\n'
-            'Method: ${options.method}\n'
-            'Query: ${options.queryParameters}\n'
-            'Data: ${options.data}',
+            _formatRequestLog(options),
           );
           options.extra['startTime'] = DateTime.now();
           return handler.next(options);
@@ -106,18 +102,18 @@ class ApiHelper {
     return session.accessToken;
   }
 
-  void _logRequest(RequestOptions options) {
+  static String _formatRequestLog(RequestOptions options) {
     final isFormData = options.data is FormData;
     dynamic dataLog;
 
     if (isFormData) {
       final form = options.data as FormData;
 
-      List<String> fields = form.fields
+      final fields = form.fields
           .map((f) => "📝 ${f.key}: ${f.value}")
           .toList();
 
-      List<String> files = form.files
+      final files = form.files
           .map((f) => "📎 ${f.key}: ${f.value.filename}")
           .toList();
 
@@ -129,14 +125,13 @@ class ApiHelper {
       dataLog = options.data;
     }
 
-    logger.i("""
-    📤 HTTP REQUEST
-    ➡️ URL: ${options.uri}
-    ➡️ Method: ${options.method}
-    ➡️ Query: ${options.queryParameters}
-    ➡️ Data:
-    $dataLog
-    """);
+    return '''
+➡️ REQUEST
+URL: ${options.baseUrl}${options.path}
+Method: ${options.method}
+Query: ${options.queryParameters}
+Data:
+$dataLog''';
   }
 
   Future<Response?> sendRequest({

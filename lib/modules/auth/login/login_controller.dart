@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/material.dart';
 import 'package:svar_ai/core/constants/auth_redirect.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
 import 'package:svar_ai/modules/subscription/subscription_controller.dart';
@@ -20,7 +19,7 @@ class LoginController extends GetxController {
       final session = data.session;
 
       if (event == AuthChangeEvent.signedIn && session != null) {
-        print("✅ User signed in ✔");
+        debugPrint('User signed in');
         if (Get.isRegistered<SubscriptionController>()) {
           Get.find<SubscriptionController>().logInUser(session.user.id);
         }
@@ -28,7 +27,7 @@ class LoginController extends GetxController {
       }
 
       if (event == AuthChangeEvent.signedOut) {
-        print("🚪 User signed out");
+        debugPrint('User signed out');
         if (Get.isRegistered<SubscriptionController>()) {
           Get.find<SubscriptionController>().logOutUser();
         }
