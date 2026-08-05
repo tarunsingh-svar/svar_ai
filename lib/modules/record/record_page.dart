@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:svar_ai/core/routing/app_routes.dart';
 import 'package:svar_ai/core/helpers/recording_foreground.dart';
+import 'package:svar_ai/core/constants/plan_limits.dart';
 import 'package:svar_ai/modules/ai/transcribe_controller.dart';
 import 'package:svar_ai/modules/subscription/subscription_controller.dart';
 import '../../../core/constants/app_colors.dart';
@@ -148,6 +149,19 @@ class _RecordPageState extends State<RecordPage> {
       }
 
       if (path != null) {
+        // Only Pro users can reach the size ceiling; free users are already
+        // capped at ~720 KB by the 3-minute duration limit.
+        final fileSize = File(path).lengthSync();
+        var skipTranscription = false;
+        if (fileSize > PlanLimits.maxTranscribableBytes) {
+          final keep = await _confirmOversizedRecording(fileSize);
+          if (!keep) {
+            await _discardRecording(path);
+            return;
+          }
+          skipTranscription = true;
+        }
+
         recordedFilePath = path;
         transcribeController.currentAudioPath.value = path;
         final isContinue = transcribeController.isContinuingRecording;
@@ -157,7 +171,11 @@ class _RecordPageState extends State<RecordPage> {
             recordedSeconds > 0 ? recordedSeconds : uiSeconds;
 
         Get.back();
-        await processRecording(path, newRecordingSeconds);
+        await processRecording(
+          path,
+          newRecordingSeconds,
+          skipTranscription: skipTranscription,
+        );
 
         if (!isContinue) {
           if (transcribeController.shouldReplaceNotePageOnFinish.value) {
@@ -178,7 +196,11 @@ class _RecordPageState extends State<RecordPage> {
     }
   }
 
-  Future<void> processRecording(String path, int newRecordingSeconds) async {
+  Future<void> processRecording(
+    String path,
+    int newRecordingSeconds, {
+    bool skipTranscription = false,
+  }) async {
     final isContinue = transcribeController.isContinuingRecording;
     final existingNoteId = transcribeController.thisNoteId.value;
 
@@ -210,6 +232,16 @@ class _RecordPageState extends State<RecordPage> {
 
     await transcribeController.persistAudioPath(targetNoteId, path);
 
+    if (skipTranscription) {
+      const message =
+          'This recording is over 24 MB, which is too large to transcribe '
+          'automatically. The audio is saved on your note. Try splitting long '
+          'recordings into shorter parts to transcribe them.';
+      aiController.transcriptText.value = message;
+      await transcribeController.updateTranscribeText(targetNoteId, message);
+      return;
+    }
+
     await aiController.processRecordedAudio(
       File(path),
       appendToExisting: isContinue && existingNoteId != 0,
@@ -222,6 +254,51 @@ class _RecordPageState extends State<RecordPage> {
     if (canUpdate) {
       await transcribeController.updateTranscribeText(targetNoteId, transcript);
     }
+  }
+
+  /// Asks whether to keep an oversized recording as audio-only, or discard it.
+  ///
+  /// Returns true when the user wants to save the audio without a transcript,
+  /// false when they want to throw the recording away.
+  Future<bool> _confirmOversizedRecording(int fileSizeBytes) async {
+    final megabytes = (fileSizeBytes / (1024 * 1024)).toStringAsFixed(1);
+    final result = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Recording too large to transcribe'),
+        content: Text(
+          'This recording is $megabytes MB. Files over 24 MB cannot be '
+          'transcribed automatically. You can keep the audio on a note '
+          'without a transcript, or discard it and record something shorter.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back<bool>(result: false),
+            child: const Text('Discard'),
+          ),
+          TextButton(
+            onPressed: () => Get.back<bool>(result: true),
+            child: const Text('Keep audio only'),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+    return result ?? false;
+  }
+
+  Future<void> _discardRecording(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    } catch (_) {
+      // Best effort: the file lives in app documents and will be cleaned up
+      // with the app eventually. A stray recording is not worth surfacing.
+    }
+    recordedFilePath = null;
+    seconds.value = 0;
+    timeDisplay.value = "00:00:00";
+    transcribeController.prepareNewRecordingSession();
+    Get.back();
   }
 
   @override

@@ -11,6 +11,14 @@ class PlanLimits {
   /// Max recording length (seconds) for free users. 3 minutes.
   static const int freeMaxRecordingSeconds = 180;
 
+  /// Largest audio file we will send to the STT pipeline. OpenAI's hard limit
+  /// is 25 MB; we cut 1 MB below that to leave room for the multipart envelope
+  /// and to keep the same ceiling whether the router picks OpenAI or Sarvam.
+  ///
+  /// Only Pro users can reach this. At the recording preset (16 kHz mono AAC,
+  /// 32 kbps) the free 3-minute cap arrives around 720 KB.
+  static const int maxTranscribableBytes = 24 * 1024 * 1024;
+
   /// Rewrite option ids a free user can run. Everything else is Pro-only.
   static const Set<String> freeRewriteIds = {RewriteIds.meetingNotes};
 }

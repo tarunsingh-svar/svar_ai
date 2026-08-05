@@ -75,11 +75,26 @@ void main() {
     });
 
     test('the recording cap stays under the upload size ceiling', () {
-      // Recording is 16 kHz at 32 kbps, and OpenAI rejects uploads over 25 MB.
+      // Recording is 16 kHz at 32 kbps; free users must never hit the STT
+      // ceiling that Pro users can, otherwise the guard is user-visible.
       const bytesPerSecond = 32000 / 8;
       final maxBytes = PlanLimits.freeMaxRecordingSeconds * bytesPerSecond;
 
-      expect(maxBytes, lessThan(25 * 1024 * 1024));
+      expect(maxBytes, lessThan(PlanLimits.maxTranscribableBytes));
+    });
+  });
+
+  group('upload ceiling', () {
+    test('is under OpenAI\'s 25 MB hard limit, leaving room for multipart', () {
+      expect(
+        PlanLimits.maxTranscribableBytes,
+        lessThan(25 * 1024 * 1024),
+      );
+      // But not so far under that we reject reasonable recordings.
+      expect(
+        PlanLimits.maxTranscribableBytes,
+        greaterThanOrEqualTo(20 * 1024 * 1024),
+      );
     });
   });
 }
