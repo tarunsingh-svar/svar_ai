@@ -6,6 +6,7 @@ import 'package:svar_ai/modules/user_details/user_profession_screen.dart';
 import 'package:svar_ai/modules/user_details/user_usage_screen.dart';
 import 'package:svar_ai/modules/welcome/welcome_page.dart';
 import '../../modules/intro/intro_screens.dart';
+import '../../modules/auth/login/email_auth_page.dart';
 import '../../modules/auth/login/login_page.dart';
 import '../../modules/home/home_page.dart';
 import '../../modules/note/create_note_page.dart';
@@ -29,6 +30,7 @@ class AppPages {
     GetPage(name: AppRoutes.welcome, page: () => const WelcomePage()),
     GetPage(name: AppRoutes.intro, page: () => const IntroScreens()),
     GetPage(name: AppRoutes.login, page: () => const LoginPage()),
+    GetPage(name: AppRoutes.emailAuth, page: () => const EmailAuthPage()),
     GetPage(name: AppRoutes.home, page: () => HomePage()),
     GetPage(name: AppRoutes.userAgeScreen, page: () => UserAgeScreen()),
     GetPage(name: AppRoutes.userProfession, page: () => UserProfessionScreen()),

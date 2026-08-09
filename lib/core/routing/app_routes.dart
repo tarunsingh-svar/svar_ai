@@ -3,6 +3,7 @@ class AppRoutes {
   static const welcome = '/welcome';
   static const intro = '/intro';
   static const login = '/login';
+  static const emailAuth = '/emailAuth';
   static const home = '/home';
   static const userAgeScreen = '/UserAgeScreen';
   static const userProfession = '/userProfession';

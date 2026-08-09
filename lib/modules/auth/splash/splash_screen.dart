@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:svar_ai/core/constants/keys.dart';
 import 'package:svar_ai/core/theme/text_styles.dart';
+import 'package:svar_ai/modules/auth/auth_navigation.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/routing/app_routes.dart';
 
@@ -27,16 +26,9 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 2));
 
     final session = _supabase.auth.currentSession;
-    final prefs = Get.find<SharedPreferences>();
-    final hasOnboarded = prefs.getBool(Keys.hasOnboarded) ?? false;
 
     if (session != null) {
-      if (hasOnboarded) {
-        Get.offAllNamed(AppRoutes.home);
-      } else {
-        Get.offAllNamed(AppRoutes.userAgeScreen);
-      }
-      // user is logged in
+      await AuthNavigation.routeAfterSignIn(userId: session.user.id);
     } else {
       Get.offAllNamed(AppRoutes.welcome);
     }

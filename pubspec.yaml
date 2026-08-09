@@ -45,7 +45,6 @@ dependencies:
   permission_handler: ^12.0.1
   google_fonts: ^6.3.2
   animate_do: ^4.2.0
-  google_sign_in: ^7.2.0
   flutter_easyloading: ^3.0.5
   shared_preferences: ^2.5.3
   dio: ^5.9.0

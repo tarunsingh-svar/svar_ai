@@ -131,21 +131,31 @@ class LoginPage extends StatelessWidget {
 
               SizedBox(height: 3.h),
 
-              // Email Sign-In Button (Only icon, no actual form here)
+              // Email Sign-In Button
               InkWell(
-                onTap: () {
-                  Get.toNamed(AppRoutes.userAgeScreen);
-                },
+                onTap: () => Get.toNamed(AppRoutes.emailAuth),
                 child: WhiteCard(
                   width: double.infinity,
                   height: 6.h,
                   borderRadius: 10,
-                  child: Center(
-                    child: Icon(
-                      Icons.mail,
-                      color: AppColors.grey400,
-                      size: 20.sp,
-                    ),
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.mail_outline_rounded,
+                        color: AppColors.textBlack,
+                        size: 20.sp,
+                      ),
+                      SizedBox(width: 5.w),
+                      Text(
+                        'Continue with Email',
+                        style: AppTextTheme.button.copyWith(
+                          color: AppColors.textBlack,
+                          fontSize: 17,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

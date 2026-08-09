@@ -16,8 +16,9 @@ class LegalContent {
     LegalSection(
       title: 'Information we collect',
       body:
-          'Account information: When you sign in with Google, we receive your email address '
-          'and basic profile details needed to create and secure your account.\n\n'
+          'Account information: When you sign in with Google or with an email and password, '
+          'we collect the email address and basic profile details needed to create and '
+          'secure your account.\n\n'
           'Content you create: We store the notes, transcripts, summaries, tags, and related '
           'metadata you save in the app, including audio recordings you choose to upload or '
           'process.\n\n'
