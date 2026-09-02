@@ -1,193 +1,277 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:svar_ai/core/routing/app_routes.dart';
-import 'package:svar_ai/modules/auth/login/login_controller.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../widgets/legal_link.dart';
-import '../../../widgets/white_card.dart';
+import '../../welcome/widgets/svar_mark.dart';
+import 'login_controller.dart';
+import 'login_metrics.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final LoginController loginController = Get.find();
-    final legalTextStyle = AppTextTheme.body2.copyWith(
-      color: AppColors.grey500,
-      fontSize: 15.sp,
-    );
+    final loginController = Get.find<LoginController>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 5.h),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: LoginMetrics.horizontalPadding(context),
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 9.h),
-
-              // Logo Icon (Placeholder for now)
-              Image.asset(AppAssets.welcomeImg, height: 27.h),
-
-              SizedBox(height: 2.h),
-
-              // App Name
-              Image.asset(AppAssets.svarAi, height: 10.h, width: 50.w),
-
-              SizedBox(height: 1.5.h),
-
-              // Tagline
-              Text(
-                'Never lose an idea, detail, or meeting note\nagain — in English, Hindi, and more.',
-                textAlign: TextAlign.center,
-                style: AppTextTheme.body1,
-                // .copyWith(fontSize: 17.sp),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: LoginMetrics.topPadding(context)),
+                      SizedBox(
+                        width: LoginMetrics.logoWidth(context),
+                        height: LoginMetrics.logoHeight(context),
+                        child: SvarMark(
+                          size: LoginMetrics.logoWidth(context),
+                          showShadow: false,
+                        ),
+                      ),
+                      SizedBox(height: LoginMetrics.logoToHeadlineGap(context)),
+                      _LoginHeadline(context),
+                      SizedBox(height: LoginMetrics.headlineToSubtextGap(context)),
+                      Text(
+                        'Log in or Sign Up and start capturing instantly.',
+                        textAlign: TextAlign.start,
+                        style: AppTextTheme.body1.copyWith(
+                          fontSize: LoginMetrics.subtextFontSize(context),
+                          color: AppColors.textGrey,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-
-              SizedBox(height: 3.h),
-
-              // Google Sign-In Button
+              SizedBox(height: LoginMetrics.subtextToButtonsGap(context)),
               Obx(
-                () => InkWell(
+                () => _AuthButton(
                   onTap: loginController.isLoading.value
                       ? null
-                      : () async {
-                          await loginController.loginWithGoogle();
-                        },
-                  child: WhiteCard(
-                  width: double.infinity,
-                  height: 6.h,
-                  borderRadius: 10,
-                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                      : () => loginController.loginWithGoogle(),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Image.asset(AppAssets.google, height: 3.h),
-                      SizedBox(width: 5.w),
+                      Image.asset(
+                        AppAssets.google,
+                        height: LoginMetrics.emailIconSize(context),
+                      ),
+                      SizedBox(width: 12 * LoginMetrics.w(context)),
                       Text(
                         loginController.isLoading.value
                             ? 'Signing in...'
-                            : 'Continue with Google',
+                            : 'Continue with google',
                         style: AppTextTheme.button.copyWith(
                           color: AppColors.textBlack,
-                          fontSize: 17,
+                          fontSize: LoginMetrics.buttonFontSize(context),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              ),
-
-              SizedBox(height: 3.h),
-
-              // OR Divider
-              Row(
-                children: [
-                  // Left gradient line
-                  Expanded(
-                    child: Container(
-                      height: 1,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.transparent, AppColors.grey500],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // OR text
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4.w),
-                    child: Text(
-                      'OR',
-                      style: AppTextTheme.body3.copyWith(
-                        color: AppColors.textBlack,
-                      ),
-                    ),
-                  ),
-
-                  // Right gradient line
-                  Expanded(
-                    child: Container(
-                      height: 1,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.transparent, AppColors.grey500],
-                          begin: Alignment.centerRight,
-                          end: Alignment.centerLeft,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              SizedBox(height: 3.h),
-
-              // Email Sign-In Button
-              InkWell(
+              SizedBox(height: LoginMetrics.orDividerGap(context)),
+              _OrDivider(context),
+              SizedBox(height: LoginMetrics.orDividerGap(context)),
+              _AuthButton(
                 onTap: () => Get.toNamed(AppRoutes.emailAuth),
-                child: WhiteCard(
-                  width: double.infinity,
-                  height: 6.h,
-                  borderRadius: 10,
-                  padding: EdgeInsets.symmetric(horizontal: 4.w),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.mail_outline_rounded,
-                        color: AppColors.textBlack,
-                        size: 20.sp,
-                      ),
-                      SizedBox(width: 5.w),
-                      Text(
-                        'Continue with Email',
-                        style: AppTextTheme.button.copyWith(
-                          color: AppColors.textBlack,
-                          fontSize: 17,
-                        ),
-                      ),
-                    ],
-                  ),
+                child: Icon(
+                  Icons.mail_outline_rounded,
+                  size: LoginMetrics.emailIconSize(context),
+                  color: AppColors.grey600,
                 ),
               ),
-
-              SizedBox(height: 5.h),
-
-              // Terms & Privacy — both tappable, as the stores require.
-              Text(
-                'By continuing, you agree to our',
-                style: legalTextStyle,
-                textAlign: TextAlign.center,
+              SizedBox(height: LoginMetrics.buttonsToFooterGap(context)),
+              Align(
+                alignment: Alignment.center,
+                child: _LegalFooter(context),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  LegalLink(
-                    label: 'Terms of Service',
-                    route: AppRoutes.termsOfServicePage,
-                    style: legalTextStyle,
-                  ),
-                  Text('and', style: legalTextStyle),
-                  LegalLink(
-                    label: 'Privacy Policy',
-                    route: AppRoutes.privacyPolicyPage,
-                    style: legalTextStyle,
-                  ),
-                ],
-              ),
+              SizedBox(height: LoginMetrics.bottomPadding(context)),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LoginHeadline extends StatelessWidget {
+  const _LoginHeadline(this.context);
+
+  final BuildContext context;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppTextTheme.h2.copyWith(
+      fontSize: LoginMetrics.headlineFontSize(this.context),
+      fontWeight: FontWeight.w700,
+      height: 1.2,
+      letterSpacing: -0.5,
+    );
+
+    return Text.rich(
+      TextSpan(
+        text: 'Your ',
+        style: style.copyWith(color: AppColors.textBlack),
+        children: [
+          TextSpan(
+            text: 'thoughts\n',
+            style: style.copyWith(color: AppColors.primary),
+          ),
+          TextSpan(
+            text: 'are ready\n',
+            style: style.copyWith(color: AppColors.textBlack),
+          ),
+          TextSpan(
+            text: 'for ',
+            style: style.copyWith(color: AppColors.textBlack),
+          ),
+          TextSpan(
+            text: 'SVAR.',
+            style: style.copyWith(color: AppColors.primary),
+          ),
+        ],
+      ),
+      textAlign: TextAlign.start,
+    );
+  }
+}
+
+class _AuthButton extends StatelessWidget {
+  const _AuthButton({required this.onTap, required this.child});
+
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final height = LoginMetrics.buttonHeight(context);
+    final radius = LoginMetrics.buttonRadius(context);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(color: AppColors.borderGrey.withValues(alpha: 0.6)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadowLight,
+              blurRadius: 12,
+              offset: Offset(0, 4 * LoginMetrics.h(context)),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: child,
+      ),
+    );
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider(this.context);
+
+  final BuildContext context;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 1,
+            color: AppColors.borderGrey,
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16 * LoginMetrics.w(context)),
+          child: Text(
+            'OR',
+            style: AppTextTheme.caption.copyWith(
+              fontSize: LoginMetrics.legalFontSize(context),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.8,
+              color: AppColors.grey500,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: AppColors.borderGrey,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LegalFooter extends StatelessWidget {
+  const _LegalFooter(this.context);
+
+  final BuildContext context;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = AppTextTheme.caption.copyWith(
+      fontSize: LoginMetrics.legalFontSize(context),
+      color: AppColors.textGrey,
+      height: 1.45,
+    );
+
+    return Text.rich(
+      TextSpan(
+        text: 'By Continuing, you agree to our ',
+        style: base,
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: LegalLink(
+              label: 'Terms of Service',
+              route: AppRoutes.termsOfServicePage,
+              style: base.copyWith(
+                color: AppColors.textGrey,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+          TextSpan(text: ' and ', style: base),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: LegalLink(
+              label: 'Privacy Policy',
+              route: AppRoutes.privacyPolicyPage,
+              style: base.copyWith(
+                color: AppColors.textGrey,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+          TextSpan(text: '.', style: base),
+        ],
+      ),
+      textAlign: TextAlign.center,
     );
   }
 }

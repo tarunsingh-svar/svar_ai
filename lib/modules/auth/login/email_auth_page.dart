@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:svar_ai/core/constants/app_colors.dart';
-import 'package:svar_ai/core/theme/text_styles.dart';
-import 'package:svar_ai/modules/auth/login/login_controller.dart';
-import 'package:svar_ai/widgets/custom_button.dart';
+
+import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/text_styles.dart';
+import '../../../widgets/custom_button.dart';
+import 'login_controller.dart';
+import 'login_metrics.dart';
 
 class EmailAuthPage extends StatefulWidget {
   const EmailAuthPage({super.key});
@@ -14,21 +15,17 @@ class EmailAuthPage extends StatefulWidget {
 }
 
 class _EmailAuthPageState extends State<EmailAuthPage> {
-  static const _minPasswordLength = 8;
-
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _otpController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  bool _isSignUp = false;
-  bool _obscurePassword = true;
+  bool _linkSent = false;
+  String _sentToEmail = '';
 
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -37,13 +34,41 @@ class _EmailAuthPageState extends State<EmailAuthPage> {
 
     final controller = Get.find<LoginController>();
     final email = _emailController.text.trim();
-    final password = _passwordController.text;
+    final sent = await controller.sendMagicLink(email);
+    if (!sent || !mounted) return;
 
-    if (_isSignUp) {
-      await controller.signUpWithEmail(email, password);
-    } else {
-      await controller.signInWithEmail(email, password);
+    setState(() {
+      _linkSent = true;
+      _sentToEmail = email;
+      _otpController.clear();
+    });
+  }
+
+  Future<void> _verifyOtp() async {
+    final code = _otpController.text.trim();
+    if (code.length != 6) {
+      Get.snackbar(
+        'Enter the 6-digit code',
+        'Use the code from your email if the link did not open the app.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
     }
+
+    final controller = Get.find<LoginController>();
+    await controller.verifyEmailOtp(_sentToEmail, code);
+  }
+
+  Future<void> _resendLink() async {
+    final controller = Get.find<LoginController>();
+    final sent = await controller.sendMagicLink(_sentToEmail);
+    if (!sent || !mounted) return;
+
+    Get.snackbar(
+      'Link sent again',
+      'Check your inbox and spam folder for $_sentToEmail.',
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
   @override
@@ -63,164 +88,201 @@ class _EmailAuthPageState extends State<EmailAuthPage> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _isSignUp ? 'Create your account' : 'Sign in with email',
-                  style: AppTextTheme.h3,
-                ),
-                SizedBox(height: 1.h),
-                Text(
-                  _isSignUp
-                      ? 'Choose an email and password to get started.'
-                      : 'Enter your email and password to continue.',
-                  style: AppTextTheme.body1.copyWith(color: AppColors.grey500),
-                ),
-                SizedBox(height: 4.h),
-                Text('Email', style: AppTextTheme.body2),
-                SizedBox(height: 0.8.h),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
-                  textInputAction: TextInputAction.next,
-                  decoration: _inputDecoration('you@company.com'),
-                  validator: (value) {
-                    final email = value?.trim() ?? '';
-                    if (email.isEmpty) return 'Email is required';
-                    if (!GetUtils.isEmail(email)) {
-                      return 'Enter a valid email address';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 2.h),
-                Text('Password', style: AppTextTheme.body2),
-                SizedBox(height: 0.8.h),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  autofillHints: [
-                    _isSignUp
-                        ? AutofillHints.newPassword
-                        : AutofillHints.password,
-                  ],
-                  textInputAction: _isSignUp
-                      ? TextInputAction.next
-                      : TextInputAction.done,
-                  onFieldSubmitted: (_) {
-                    if (!_isSignUp) _submit();
-                  },
-                  decoration: _inputDecoration(
-                    'At least $_minPasswordLength characters',
-                  ).copyWith(
-                    suffixIcon: IconButton(
-                      onPressed: () {
-                        setState(() => _obscurePassword = !_obscurePassword);
-                      },
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        color: AppColors.grey400,
-                      ),
-                    ),
-                  ),
-                  validator: (value) {
-                    final password = value ?? '';
-                    if (password.isEmpty) return 'Password is required';
-                    if (password.length < _minPasswordLength) {
-                      return 'Password must be at least $_minPasswordLength characters';
-                    }
-                    return null;
-                  },
-                ),
-                if (_isSignUp) ...[
-                  SizedBox(height: 2.h),
-                  Text('Confirm password', style: AppTextTheme.body2),
-                  SizedBox(height: 0.8.h),
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: _obscurePassword,
-                    autofillHints: const [AutofillHints.newPassword],
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submit(),
-                    decoration: _inputDecoration('Re-enter your password'),
-                    validator: (value) {
-                      if ((value ?? '').isEmpty) {
-                        return 'Please confirm your password';
-                      }
-                      if (value != _passwordController.text) {
-                        return 'Passwords do not match';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-                SizedBox(height: 4.h),
-                Obx(
-                  () => Opacity(
-                    opacity: loginController.isLoading.value ? 0.6 : 1,
-                    child: CustomButton(
-                      text: loginController.isLoading.value
-                          ? (_isSignUp ? 'Creating account...' : 'Signing in...')
-                          : (_isSignUp ? 'Create account' : 'Sign in'),
-                      onTap: loginController.isLoading.value ? () {} : _submit,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 2.5.h),
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _isSignUp = !_isSignUp;
-                        _confirmPasswordController.clear();
-                      });
-                    },
-                    child: Text(
-                      _isSignUp
-                          ? 'Already have an account? Sign in'
-                          : 'Create an account',
-                      style: AppTextTheme.body2.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          padding: EdgeInsets.symmetric(
+            horizontal: LoginMetrics.horizontalPadding(context),
+            vertical: 8 * LoginMetrics.h(context),
           ),
+          child: _linkSent ? _buildSentState(context) : _buildForm(context, loginController),
         ),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
+  Widget _buildForm(BuildContext context, LoginController loginController) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Continue with email',
+            style: AppTextTheme.h2.copyWith(
+              fontSize: LoginMetrics.headlineFontSize(context) * 0.85,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: LoginMetrics.headlineToSubtextGap(context)),
+          Text(
+            'Enter your email and we\'ll send you a secure sign-in link.',
+            style: AppTextTheme.body1.copyWith(
+              fontSize: LoginMetrics.subtextFontSize(context),
+              color: AppColors.textGrey,
+              height: 1.45,
+            ),
+          ),
+          SizedBox(height: LoginMetrics.subtextToButtonsGap(context)),
+          Text('Email', style: AppTextTheme.body2),
+          SizedBox(height: 8 * LoginMetrics.h(context)),
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => _submit(),
+            decoration: _inputDecoration(context, 'you@company.com'),
+            validator: (value) {
+              final email = value?.trim() ?? '';
+              if (email.isEmpty) return 'Email is required';
+              if (!GetUtils.isEmail(email)) {
+                return 'Enter a valid email address';
+              }
+              return null;
+            },
+          ),
+          SizedBox(height: LoginMetrics.subtextToButtonsGap(context)),
+          Obx(
+            () => Opacity(
+              opacity: loginController.isLoading.value ? 0.6 : 1,
+              child: CustomButton(
+                text: loginController.isLoading.value
+                    ? 'Sending link...'
+                    : 'Send sign-in link',
+                onTap: loginController.isLoading.value ? () {} : _submit,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSentState(BuildContext context) {
+    final loginController = Get.find<LoginController>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.mark_email_read_outlined,
+          size: 48 * LoginMetrics.w(context),
+          color: AppColors.primary,
+        ),
+        SizedBox(height: LoginMetrics.logoToHeadlineGap(context)),
+        Text(
+          'Check your email',
+          style: AppTextTheme.h2.copyWith(
+            fontSize: LoginMetrics.headlineFontSize(context) * 0.85,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(height: LoginMetrics.headlineToSubtextGap(context)),
+        Text.rich(
+          TextSpan(
+            text: 'We sent a sign-in link to ',
+            style: AppTextTheme.body1.copyWith(
+              fontSize: LoginMetrics.subtextFontSize(context),
+              color: AppColors.textGrey,
+              height: 1.45,
+            ),
+            children: [
+              TextSpan(
+                text: _sentToEmail,
+                style: const TextStyle(
+                  color: AppColors.textBlack,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const TextSpan(
+                text:
+                    '. Open it on this device to continue. Also check spam or Promotions.',
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: LoginMetrics.subtextToButtonsGap(context)),
+        Text(
+          'Have a 6-digit code instead?',
+          style: AppTextTheme.body2.copyWith(fontWeight: FontWeight.w600),
+        ),
+        SizedBox(height: 8 * LoginMetrics.h(context)),
+        TextField(
+          controller: _otpController,
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.done,
+          maxLength: 6,
+          onSubmitted: (_) => _verifyOtp(),
+          decoration: _inputDecoration(context, '123456').copyWith(
+            counterText: '',
+          ),
+        ),
+        SizedBox(height: LoginMetrics.headlineToSubtextGap(context)),
+        Obx(
+          () => Opacity(
+            opacity: loginController.isLoading.value ? 0.6 : 1,
+            child: CustomButton(
+              text: loginController.isLoading.value
+                  ? 'Verifying...'
+                  : 'Verify code',
+              onTap: loginController.isLoading.value ? () {} : _verifyOtp,
+            ),
+          ),
+        ),
+        SizedBox(height: LoginMetrics.headlineToSubtextGap(context)),
+        Obx(
+          () => TextButton(
+            onPressed: loginController.isLoading.value ? null : _resendLink,
+            child: Text(
+              'Resend link',
+              style: AppTextTheme.body2.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              _linkSent = false;
+              _sentToEmail = '';
+              _otpController.clear();
+            });
+          },
+          child: Text(
+            'Use a different email',
+            style: AppTextTheme.body2.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(BuildContext context, String hint) {
     return InputDecoration(
       hintText: hint,
       filled: true,
       fillColor: AppColors.white,
-      contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.6.h),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: 16 * LoginMetrics.w(context),
+        vertical: 14 * LoginMetrics.h(context),
+      ),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.grey400.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(LoginMetrics.buttonRadius(context)),
+        borderSide: BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.8)),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.grey400.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(LoginMetrics.buttonRadius(context)),
+        borderSide: BorderSide(color: AppColors.borderGrey.withValues(alpha: 0.8)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(LoginMetrics.buttonRadius(context)),
         borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(LoginMetrics.buttonRadius(context)),
         borderSide: const BorderSide(color: Colors.redAccent),
       ),
     );

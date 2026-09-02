@@ -71,6 +71,84 @@ class LoginController extends GetxController {
     }
   }
 
+  Future<bool> sendMagicLink(String email) async {
+    if (isLoading.value) return false;
+    try {
+      isLoading.value = true;
+      await _supabase.auth.signInWithOtp(
+        email: email.trim(),
+        emailRedirectTo: kIsWeb ? null : kAuthRedirectUrl,
+        shouldCreateUser: true,
+      );
+      debugPrint('Magic link requested for ${email.trim()}');
+      return true;
+    } on AuthException catch (e) {
+      debugPrint('Magic link error: ${e.message} (${e.code})');
+      final message = _magicLinkErrorMessage(e);
+      Get.snackbar(
+        'Could not send link',
+        message,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 5),
+      );
+      return false;
+    } catch (e) {
+      debugPrint('Magic link error: $e');
+      Get.snackbar(
+        'Could not send link',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> verifyEmailOtp(String email, String token) async {
+    if (isLoading.value) return false;
+    try {
+      isLoading.value = true;
+      await _supabase.auth.verifyOTP(
+        email: email.trim(),
+        token: token.trim(),
+        type: OtpType.email,
+      );
+      return true;
+    } on AuthException catch (e) {
+      debugPrint('OTP verify error: ${e.message} (${e.code})');
+      Get.snackbar(
+        'Invalid or expired code',
+        e.message,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } catch (e) {
+      debugPrint('OTP verify error: $e');
+      Get.snackbar(
+        'Could not verify code',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  String _magicLinkErrorMessage(AuthException error) {
+    return switch (error.code) {
+      'over_email_send_rate_limit' =>
+        'Please wait about a minute before requesting another link.',
+      'email_address_invalid' => 'That email address is not valid.',
+      'email_address_not_authorized' =>
+        'This email cannot receive auth messages from Supabase. Try another address or configure custom SMTP.',
+      'validation_failed' =>
+        'Could not send to that address. Check the email and try again.',
+      _ => error.message,
+    };
+  }
+
   Future<void> signInWithEmail(String email, String password) async {
     if (isLoading.value) return;
     try {
