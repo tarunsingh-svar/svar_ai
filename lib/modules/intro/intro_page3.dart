@@ -1,51 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:responsive_sizer/responsive_sizer.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_assets.dart';
-import '../../../core/theme/text_styles.dart';
+import 'widgets/intro_metrics.dart';
+import 'widgets/intro_rewrite_flow.dart';
+import 'widgets/intro_shared.dart';
 
 class IntroScreen3 extends StatelessWidget {
-  const IntroScreen3({super.key});
+  const IntroScreen3({super.key, required this.isActive});
+
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 10.h),
-
-        // Image
-        Image.asset(AppAssets.intro3, height: 40.h),
-        SizedBox(height: 4.h),
-
-        // Title
-        Text.rich(
-          TextSpan(
-            text: 'Great ideas',
-            style: AppTextTheme.h3,
-            children: [
-              TextSpan(
-                text: ' slip ',
-                style: AppTextTheme.h3.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w900,
+        Expanded(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: MediaQuery.sizeOf(context).width,
+                    child: IntroRewriteFlow(isActive: isActive),
+                  ),
                 ),
-              ),
-              TextSpan(
-                text: "away before you can note\nthem down?",
-                style: AppTextTheme.h3,
-              ),
-            ],
+                SizedBox(
+                  height: IntroMetrics.rewriteChipToHeadlineGap(context),
+                ),
+              ],
+            ),
           ),
         ),
-
-        SizedBox(height: 2.h),
-
-        // Description
-        Text(
-          "Stop worrying about missed action items.\nWe’ll handle the notes while you stay present.",
-          style: AppTextTheme.body1.copyWith(fontSize: 16.sp),
+        const IntroTextBlock(
+          headlineBlue: 'One thought.',
+          headlineBlack: 'Many ways to use it.',
+          body:
+              'Svar doesn\'t just capture what you said. '
+              'It turns it into what you need.',
         ),
       ],
     );
