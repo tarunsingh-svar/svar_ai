@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 272 272" width="272" height="272" role="img" aria-label="SVAR mark">
+  <title>SVAR</title>
+  <defs>
+    <radialGradient id="svar-fill" cx="42.5%" cy="40%" r="105%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="55%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </radialGradient>
+    <clipPath id="svar-shape">
+      <rect width="272" height="272" rx="92.48" ry="92.48"/>
+    </clipPath>
+  </defs>
+  <rect width="272" height="272" rx="92.48" ry="92.48" fill="url(#svar-fill)"/>
+  <g fill="#fff" clip-path="url(#svar-shape)">
+    <rect x="68.350" y="96.000" width="5.3" height="15.000" rx="2.650"/>
+    <rect x="68.350" y="169.000" width="5.3" height="11.000" rx="2.650"/>
+    <rect x="79.350" y="89.000" width="5.3" height="33.000" rx="2.650"/>
+    <rect x="79.350" y="163.000" width="5.3" height="24.000" rx="2.650"/>
+    <rect x="90.350" y="76.000" width="5.3" height="58.000" rx="2.650"/>
+    <rect x="90.350" y="169.000" width="5.3" height="30.000" rx="2.650"/>
+    <rect x="100.850" y="67.000" width="5.3" height="74.000" rx="2.650"/>
+    <rect x="100.850" y="163.000" width="5.3" height="42.000" rx="2.650"/>
+    <rect x="111.350" y="61.000" width="5.3" height="84.000" rx="2.650"/>
+    <rect x="111.350" y="173.000" width="5.3" height="37.000" rx="2.650"/>
+    <rect x="122.350" y="55.000" width="5.3" height="31.000" rx="2.650"/>
+    <rect x="122.350" y="112.000" width="5.3" height="38.000" rx="2.650"/>
+    <rect x="122.350" y="185.000" width="5.3" height="31.000" rx="2.650"/>
+    <rect x="132.850" y="48.000" width="5.3" height="35.000" rx="2.650"/>
+    <rect x="132.850" y="116.000" width="5.3" height="39.000" rx="2.650"/>
+    <rect x="132.850" y="188.000" width="5.3" height="35.000" rx="2.650"/>
+    <rect x="143.350" y="55.000" width="5.3" height="31.000" rx="2.650"/>
+    <rect x="143.350" y="121.000" width="5.3" height="38.000" rx="2.650"/>
+    <rect x="143.350" y="185.000" width="5.3" height="31.000" rx="2.650"/>
+    <rect x="154.350" y="61.000" width="5.3" height="37.000" rx="2.650"/>
+    <rect x="154.350" y="126.000" width="5.3" height="84.000" rx="2.650"/>
+    <rect x="165.350" y="66.000" width="5.3" height="42.000" rx="2.650"/>
+    <rect x="165.350" y="130.000" width="5.3" height="75.000" rx="2.650"/>
+    <rect x="175.350" y="72.000" width="5.3" height="30.000" rx="2.650"/>
+    <rect x="175.350" y="137.000" width="5.3" height="60.000" rx="2.650"/>
+    <rect x="186.350" y="84.000" width="5.3" height="24.000" rx="2.650"/>
+    <rect x="186.350" y="149.000" width="5.3" height="37.000" rx="2.650"/>
+    <rect x="197.350" y="92.000" width="5.3" height="11.000" rx="2.650"/>
+    <rect x="197.350" y="160.000" width="5.3" height="17.000" rx="2.650"/>
+  </g>
+</svg>
